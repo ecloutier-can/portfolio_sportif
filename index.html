@@ -675,7 +675,7 @@
 
         async function initPortfolio() {
             try {
-                const response = await fetch('data.json');
+                const response = await fetch(`data.json?t=${Date.now()}`);
                 const data = await response.json();
 
                 athleteData = data.athlete;
