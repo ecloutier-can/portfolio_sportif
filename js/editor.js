@@ -16,6 +16,17 @@ export class Editor {
         this.initContentForm();
     }
 
+    showLoading(text) {
+        const overlay = document.getElementById('loading-overlay');
+        const loadingText = document.getElementById('loading-text');
+        overlay.style.display = 'flex';
+        loadingText.textContent = text || "Traitement en cours...";
+    }
+
+    hideLoading() {
+        document.getElementById('loading-overlay').style.display = 'none';
+    }
+
     setupAdminAuth() {
         const loginBtn = document.getElementById('admin-login-btn');
         const logoutBtn = document.getElementById('admin-logout-btn');
@@ -30,7 +41,9 @@ export class Editor {
                     const repo = prompt("GitHub Repo :", "portfolio_sportif");
 
                     this.github = new GitHubService(owner, repo, token);
-                    await this.github.getFile('data.json');
+                    // Récupérer les données les plus fraîches depuis GitHub
+                    const remoteData = await this.github.getFile('data.json');
+                    this.data = JSON.parse(decodeURIComponent(escape(atob(remoteData.content))));
 
                     this.isAdmin = true;
                     document.body.classList.add('admin-mode');
@@ -57,6 +70,15 @@ export class Editor {
         };
     }
 
+    async fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = error => reject(error);
+        });
+    }
+
     initContentForm() {
         const modal = document.getElementById('add-content-modal');
         const addBtn = document.getElementById('admin-add-btn');
@@ -64,7 +86,9 @@ export class Editor {
         const form = document.getElementById('add-content-form');
         const typeSelect = document.getElementById('item-type');
         const urlInput = document.getElementById('item-url');
+        const fileInput = document.getElementById('item-file');
         const thumbInput = document.getElementById('item-thumbnail');
+        const thumbFileInput = document.getElementById('item-thumb-file');
 
         addBtn.onclick = () => {
             modal.style.display = 'flex';
@@ -76,42 +100,73 @@ export class Editor {
             form.reset();
         };
 
-        typeSelect.onchange = () => {
-            if (typeSelect.value === 'youtube') {
-                urlInput.placeholder = "URL YouTube (ex: https://www.youtube.com/watch?v=...)";
-            } else {
-                urlInput.placeholder = "Chemin local (ex: media/photos/image.jpg)";
+        // Suggestion de chemin local quand on choisit un fichier
+        fileInput.onchange = () => {
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const folder = typeSelect.value === 'video' ? 'videos' : 'photos';
+                const folderCategory = document.getElementById('item-category').value.toLowerCase() || 'general';
+                urlInput.value = `media/${folder}/${folderCategory}/${file.name}`;
             }
         };
 
         form.onsubmit = async (e) => {
             e.preventDefault();
-
-            const newItem = {
-                id: Date.now(),
-                title: document.getElementById('item-title').value,
-                type: typeSelect.value,
-                url: urlInput.value,
-                category: document.getElementById('item-category').value,
-                description: document.getElementById('item-description').value,
-                thumbnail: thumbInput.value
-            };
-
-            // Auto-génération de la miniature YouTube si vide
-            if (newItem.type === 'youtube' && !newItem.thumbnail) {
-                const videoId = this.extractYouTubeId(newItem.url);
-                newItem.thumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-            }
-
-            this.data.items.push(newItem);
+            this.showLoading("Préparation de l'extrait...");
 
             try {
+                const title = document.getElementById('item-title').value;
+                const type = typeSelect.value;
+                const category = document.getElementById('item-category').value;
+                const tags = document.getElementById('item-tags').value.split(',').map(t => t.trim()).filter(t => t);
+                const description = document.getElementById('item-description').value;
+                let finalUrl = urlInput.value;
+                let finalThumb = thumbInput.value;
+
+                // 1. Upload du fichier principal si présent
+                if (fileInput.files.length > 0) {
+                    this.showLoading(`Upload du média : ${fileInput.files[0].name}...`);
+                    const base64 = await this.fileToBase64(fileInput.files[0]);
+                    await this.github.updateFile(finalUrl, base64, `Upload média : ${title}`, true);
+                }
+
+                // 2. Upload de la miniature si présente
+                if (thumbFileInput.files.length > 0) {
+                    this.showLoading(`Upload de la miniature...`);
+                    const thumbBase64 = await this.fileToBase64(thumbFileInput.files[0]);
+                    if (!finalThumb) finalThumb = `media/thumbnails/${thumbFileInput.files[0].name}`;
+                    await this.github.updateFile(finalThumb, thumbBase64, `Upload miniature : ${title}`, true);
+                }
+
+                // 3. Auto-miniature YouTube
+                if (type === 'youtube' && !finalThumb) {
+                    const videoId = this.extractYouTubeId(finalUrl);
+                    finalThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                }
+
+                const newItem = {
+                    id: Date.now(),
+                    title,
+                    type,
+                    url: finalUrl,
+                    category,
+                    tags,
+                    description,
+                    thumbnail: finalThumb || 'media/thumbnails/default.jpg'
+                };
+
+                this.data.items.push(newItem);
+
+                this.showLoading("Mise à jour de data.json...");
                 const updatedContent = JSON.stringify(this.data, null, 2);
-                await this.github.updateFile('data.json', updatedContent, `Ajout de l'extrait : ${newItem.title}`);
-                alert("Extrait ajouté avec succès !");
+                await this.github.updateFile('data.json', updatedContent, `Ajout extrait : ${title}`);
+
+                this.hideLoading();
+                alert("Ajouté avec succès !");
                 location.reload();
             } catch (err) {
-                alert("Erreur lors de l'ajout : " + err.message);
+                this.hideLoading();
+                alert("Erreur : " + err.message);
             }
         };
     }
@@ -133,30 +188,22 @@ export class Editor {
         fields.forEach(field => {
             field.onclick = () => {
                 if (!this.isAdmin) return;
-
                 const fieldPath = field.dataset.field;
                 const targetId = field.querySelector('[id]').id;
-
-                if (this.quillInstances[fieldPath]) return; // Déjà en édition
+                if (this.quillInstances[fieldPath]) return;
 
                 const container = field.querySelector(`#${targetId}`);
-                const originalContent = container.innerHTML;
-
-                // Initialiser Quill
                 const quill = new Quill(container, {
                     theme: 'snow',
                     modules: {
                         toolbar: [
-                            ['bold', 'italic', 'underline'],
+                            ['bold', 'italic'],
                             [{ 'list': 'ordered' }, { 'list': 'bullet' }],
                             ['clean']
                         ]
                     }
                 });
-
                 this.quillInstances[fieldPath] = quill;
-
-                // Empêcher la propagation du click pour ne pas relancer Quill
                 container.onclick = (e) => e.stopPropagation();
             };
         });
@@ -166,27 +213,24 @@ export class Editor {
         const saveBtn = document.getElementById('admin-save-btn');
         saveBtn.onclick = async () => {
             if (!this.github) return;
+            this.showLoading("Sauvegarde en cours...");
 
             try {
-                saveBtn.disabled = true;
-                saveBtn.textContent = "Sauvegarde...";
-
-                // Mettre à jour l'objet data avec les contenus de Quill
+                // Sync Quill
                 for (const [path, quill] of Object.entries(this.quillInstances)) {
                     const content = quill.root.innerHTML;
                     this.setDeepValue(this.data, path, content);
                 }
 
                 const updatedContent = JSON.stringify(this.data, null, 2);
-                await this.github.updateFile('data.json', updatedContent, "Mise à jour via l'éditeur web");
+                await this.github.updateFile('data.json', updatedContent, "Mise à jour athlète");
 
-                alert("Sauvegardé avec succès sur GitHub !");
+                this.hideLoading();
+                alert("Sauvegardé avec succès !");
                 location.reload();
             } catch (e) {
-                alert("Erreur lors de la sauvegarde : " + e.message);
-            } finally {
-                saveBtn.disabled = false;
-                saveBtn.textContent = "Enregistrer";
+                this.hideLoading();
+                alert("Erreur : " + e.message);
             }
         };
     }

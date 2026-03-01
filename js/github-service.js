@@ -11,7 +11,8 @@ export class GitHubService {
     }
 
     async getFile(path) {
-        const response = await fetch(`${this.baseUrl}/contents/${path}`, {
+        // Ajout d'un timestamp pour éviter le cache du navigateur
+        const response = await fetch(`${this.baseUrl}/contents/${path}?t=${Date.now()}`, {
             headers: {
                 'Authorization': `token ${this.token}`,
                 'Accept': 'application/vnd.github.v3+json'
@@ -21,12 +22,18 @@ export class GitHubService {
         return await response.json();
     }
 
-    async updateFile(path, content, message) {
-        // 1. Récupérer le SHA actuel du fichier pour pouvoir le mettre à jour
-        const fileData = await this.getFile(path);
-        const sha = fileData.sha;
+    async updateFile(path, content, message, isBase64 = false) {
+        let sha = null;
+        try {
+            const fileData = await this.getFile(path);
+            sha = fileData.sha;
+        } catch (e) {
+            // Le fichier n'existe peut-être pas encore (ex: premier upload d'image)
+            console.log("Nouveau fichier détecté");
+        }
 
-        // 2. Envoyer la mise à jour
+        const encodedContent = isBase64 ? content : btoa(unescape(encodeURIComponent(content)));
+
         const response = await fetch(`${this.baseUrl}/contents/${path}`, {
             method: 'PUT',
             headers: {
@@ -36,14 +43,14 @@ export class GitHubService {
             },
             body: JSON.stringify({
                 message: message,
-                content: btoa(unescape(encodeURIComponent(content))), // Base64 encoding for UTF-8
+                content: encodedContent,
                 sha: sha
             })
         });
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(`Erreur de sauvegarde: ${error.message}`);
+            throw new Error(`Erreur GitHub: ${error.message}`);
         }
         return await response.json();
     }

@@ -118,6 +118,22 @@
             background: #ff4757;
         }
 
+        .tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin: 8px 0;
+        }
+
+        .tag-badge {
+            font-size: 0.7rem;
+            background: rgba(19, 109, 236, 0.1);
+            color: var(--accent-color);
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(19, 109, 236, 0.2);
+        }
+
         .edit-overlay {
             position: relative;
             cursor: pointer;
@@ -476,12 +492,17 @@
                     </select>
                 </div>
                 <div class="form-group">
+                    <label>Fichier local (Optionnel - remplira l'URL)</label>
+                    <input type="file" id="item-file" accept="image/*,video/*">
+                </div>
+                <div class="form-group">
                     <label>URL du média / ID YouTube</label>
                     <input type="text" id="item-url" required placeholder="media/photos/img.jpg ou lien YT">
                 </div>
                 <div class="form-group">
                     <label>Miniature (obligatoire pour vidéos)</label>
                     <input type="text" id="item-thumbnail" placeholder="media/thumbnails/thumb.jpg">
+                    <input type="file" id="item-thumb-file" accept="image/*" style="margin-top:5px; font-size: 0.8rem;">
                 </div>
                 <div class="form-group">
                     <label>Catégorie (Filtre)</label>
@@ -489,16 +510,35 @@
                     <datalist id="category-list"></datalist>
                 </div>
                 <div class="form-group">
+                    <label>Tags (séparés par des virgules)</label>
+                    <input type="text" id="item-tags" placeholder="Ex: Précision, Finale, Extérieur">
+                </div>
+                <div class="form-group">
                     <label>Description</label>
                     <textarea id="item-description" rows="3"></textarea>
                 </div>
                 <div class="form-actions">
                     <button type="button" id="cancel-add" class="admin-btn logout">Annuler</button>
-                    <button type="submit" class="admin-btn add">Sauvegarder</button>
+                    <button type="submit" id="submit-add" class="admin-btn add">Sauvegarder</button>
                 </div>
             </form>
         </div>
     </div>
+
+    <div id="loading-overlay" class="admin-modal" style="z-index: 4000; flex-direction: column;">
+        <div class="spinner"
+            style="width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.1); border-top-color: var(--accent-color); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;">
+        </div>
+        <p id="loading-text">Traitement en cours...</p>
+    </div>
+
+    <style>
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 
     <aside id="athlete-profile">
         <img src="" alt="Photo de profil" class="profile-pic" id="athlete-pic">
@@ -574,10 +614,10 @@
                 editorInstance = new Editor(data);
 
                 // Mettre à jour le profil de l'athlète
-                document.getElementById('athlete-name').textContent = athleteData.name;
+                document.getElementById('athlete-name').innerHTML = athleteData.name;
                 document.getElementById('athlete-pic').src = athleteData.profilePicture;
-                document.getElementById('athlete-pos').textContent = athleteData.position;
-                document.getElementById('athlete-pos-label').textContent = athleteData.position;
+                document.getElementById('athlete-pos').innerHTML = athleteData.position;
+                document.getElementById('athlete-pos-label').innerHTML = athleteData.position;
                 document.getElementById('athlete-num').textContent = athleteData.number;
                 document.getElementById('athlete-bio').innerHTML = athleteData.bio;
 
@@ -623,7 +663,8 @@
                 card.className = 'portfolio-item';
                 card.onclick = () => openModal(item);
 
-                const isVideo = item.type === 'video';
+                const isVideo = item.type === 'video' || item.type === 'youtube';
+                const tagsHtml = item.tags ? item.tags.map(t => `<span class="tag-badge">#${t}</span>`).join(' ') : '';
 
                 card.innerHTML = `
                     <div class="thumbnail-container">
@@ -637,6 +678,7 @@
                     </div>
                     <div class="item-content">
                         <h3>${item.title}</h3>
+                        <div class="tags-container">${tagsHtml}</div>
                         <p>${item.description}</p>
                     </div>
                 `;
