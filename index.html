@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <style>
         :root {
             --bg-color: #050505;
@@ -17,6 +19,73 @@
             --text-secondary: #a0a0a0;
             --glass-border: rgba(255, 255, 255, 0.1);
             --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        }
+
+        /* Styles additionnels pour l'éditeur */
+        .admin-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .admin-btn {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(19, 109, 236, 0.4);
+            transition: transform 0.2s;
+        }
+
+        .admin-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .admin-btn.logout {
+            background: #ff4757;
+        }
+
+        .edit-overlay {
+            position: relative;
+            cursor: pointer;
+            border: 1px dashed transparent;
+            transition: border 0.3s;
+        }
+
+        .edit-overlay:hover {
+            border: 1px dashed var(--accent-color);
+        }
+
+        .edit-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: var(--accent-color);
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        body.admin-mode .edit-badge {
+            display: block;
+        }
+
+        .ql-container.ql-snow {
+            border: none !important;
+            font-family: inherit !important;
+            font-size: inherit !important;
+        }
+
+        .ql-editor {
+            padding: 0 !important;
+            color: inherit !important;
         }
 
         * {
@@ -93,8 +162,14 @@
             font-size: 0.9rem;
         }
 
-        .stat-label { color: var(--text-secondary); }
-        .stat-value { font-weight: 600; color: var(--accent-color); }
+        .stat-label {
+            color: var(--text-secondary);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--accent-color);
+        }
 
         /* Main Content */
         main {
@@ -127,7 +202,8 @@
             backdrop-filter: blur(5px);
         }
 
-        .filter-btn:hover, .filter-btn.active {
+        .filter-btn:hover,
+        .filter-btn.active {
             background: var(--accent-color);
             border-color: var(--accent-color);
             transform: translateY(-2px);
@@ -153,7 +229,7 @@
         .portfolio-item:hover {
             transform: scale(1.03);
             border-color: rgba(255, 255, 255, 0.3);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
 
         .thumbnail-container {
@@ -263,19 +339,28 @@
             font-weight: bold;
         }
 
-        video, img.expanded {
+        video,
+        img.expanded {
             width: 100%;
             display: block;
         }
 
         /* Responsive */
         @media (max-width: 1024px) {
-            aside { width: 250px; }
-            main { margin-left: 250px; }
+            aside {
+                width: 250px;
+            }
+
+            main {
+                margin-left: 250px;
+            }
         }
 
         @media (max-width: 768px) {
-            body { flex-direction: column; }
+            body {
+                flex-direction: column;
+            }
+
             aside {
                 position: relative;
                 width: 100%;
@@ -283,20 +368,41 @@
                 border-right: none;
                 border-bottom: 1px solid var(--glass-border);
             }
-            main { margin-left: 0; padding: 20px; }
-            header { flex-direction: column; gap: 20px; }
+
+            main {
+                margin-left: 0;
+                padding: 20px;
+            }
+
+            header {
+                flex-direction: column;
+                gap: 20px;
+            }
         }
     </style>
 </head>
+
 <body>
+
+    <div class="admin-controls">
+        <button id="admin-login-btn" class="admin-btn">🔑 Admin</button>
+        <button id="admin-logout-btn" class="admin-btn logout" style="display: none;">Déconnexion</button>
+        <button id="admin-save-btn" class="admin-btn" style="display: none; background: #2ed573;">Enregistrer</button>
+    </div>
 
     <aside id="athlete-profile">
         <img src="" alt="Photo de profil" class="profile-pic" id="athlete-pic">
         <div class="athlete-info">
-            <h1 id="athlete-name">Chargement...</h1>
-            <p id="athlete-pos"></p>
+            <div class="edit-overlay" data-field="athlete.name">
+                <h1 id="athlete-name">Chargement...</h1>
+                <span class="edit-badge">Éditer</span>
+            </div>
+            <div class="edit-overlay" data-field="athlete.position">
+                <p id="athlete-pos"></p>
+                <span class="edit-badge">Éditer</span>
+            </div>
         </div>
-        
+
         <div class="athlete-stats">
             <div class="stat-item">
                 <span class="stat-label">Numéro</span>
@@ -308,7 +414,12 @@
             </div>
         </div>
 
-        <p id="athlete-bio" style="font-size: 0.85rem; color: var(--text-secondary); text-align: center; line-height: 1.5; padding: 0 10px;"></p>
+        <div class="edit-overlay" data-field="athlete.bio">
+            <p id="athlete-bio"
+                style="font-size: 0.85rem; color: var(--text-secondary); text-align: center; line-height: 1.5; padding: 0 10px;">
+            </p>
+            <span class="edit-badge">Éditer</span>
+        </div>
     </aside>
 
     <main>
@@ -332,33 +443,43 @@
         </div>
     </div>
 
-    <script>
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+    <script type="module">
+        import { Editor } from './js/editor.js';
+
         let allItems = [];
+        let athleteData = {};
+        let editorInstance = null;
 
         async function initPortfolio() {
             try {
+                // Charger les données depuis data.json
                 const response = await fetch('data.json');
                 const data = await response.json();
-                
-                // Remplir profil athlète
-                document.getElementById('athlete-name').textContent = data.athlete.name;
-                document.getElementById('athlete-pic').src = data.athlete.profilePicture;
-                document.getElementById('athlete-pos').textContent = data.athlete.position;
-                document.getElementById('athlete-pos-label').textContent = data.athlete.position;
-                document.getElementById('athlete-num').textContent = data.athlete.number;
-                document.getElementById('athlete-bio').textContent = data.athlete.bio;
 
+                athleteData = data.athlete;
                 allItems = data.items;
-                
+
+                // Initialiser l'éditeur avec les données chargées
+                editorInstance = new Editor(data);
+
+                // Mettre à jour le profil de l'athlète
+                document.getElementById('athlete-name').textContent = athleteData.name;
+                document.getElementById('athlete-pic').src = athleteData.profilePicture;
+                document.getElementById('athlete-pos').textContent = athleteData.position;
+                document.getElementById('athlete-pos-label').textContent = athleteData.position;
+                document.getElementById('athlete-num').textContent = athleteData.number;
+                document.getElementById('athlete-bio').innerHTML = athleteData.bio;
+
                 // Générer les filtres uniques
                 const categories = ['Tous', ...new Set(allItems.map(item => item.category))];
                 renderFilters(categories);
-                
+
                 // Rendre tous les items
                 renderGrid('Tous');
 
             } catch (error) {
-                console.error("Erreur de chargement du portfolio:", error);
+                console.error("Erreur de chargement des données:", error);
             }
         }
 
@@ -382,18 +503,18 @@
         function renderGrid(filter) {
             const grid = document.getElementById('portfolio-grid');
             grid.innerHTML = '';
-            
-            const filteredItems = filter === 'Tous' 
-                ? allItems 
+
+            const filteredItems = filter === 'Tous'
+                ? allItems
                 : allItems.filter(item => item.category === filter);
 
             filteredItems.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'portfolio-item';
                 card.onclick = () => openModal(item);
-                
+
                 const isVideo = item.type === 'video';
-                
+
                 card.innerHTML = `
                     <div class="thumbnail-container">
                         <img src="${item.thumbnail}" alt="${item.title}">
@@ -416,7 +537,7 @@
         function openModal(item) {
             const modal = document.getElementById('media-modal');
             const container = document.getElementById('modal-container');
-            
+
             if (item.type === 'video') {
                 container.innerHTML = `
                     <video controls autoplay>
@@ -429,7 +550,7 @@
                     <img src="${item.url}" class="expanded">
                 `;
             }
-            
+
             modal.style.display = 'flex';
         }
 
@@ -447,6 +568,10 @@
         };
 
         initPortfolio();
+
+        // Exposer les fonctions nécessaires au scope global pour les appels depuis le HTML
+        window.openModal = openModal;
     </script>
 </body>
+
 </html>
