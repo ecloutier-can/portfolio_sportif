@@ -87,7 +87,6 @@ export class Editor {
         const form = document.getElementById('add-content-form');
         const typeSelect = document.getElementById('item-type');
         const urlInput = document.getElementById('item-url');
-        const fileInput = document.getElementById('item-file');
         const thumbInput = document.getElementById('item-thumbnail');
         const thumbFileInput = document.getElementById('item-thumb-file');
 
