@@ -124,35 +124,45 @@ export class Editor {
                 let finalUrl = urlInput.value;
                 let finalThumb = thumbInput.value;
 
-                // 1. Upload du fichier principal si présent
+                // 1. Upload du média
                 if (fileInput.files.length > 0) {
                     const file = fileInput.files[0];
-                    let base64;
+                    const folder = type === 'video' ? 'videos' : 'photos';
+                    const categoryFolder = category.toLowerCase().replace(/\s+/g, '_');
 
                     if (type === 'photo') {
-                        this.showLoading(`Préparation du recadrage : ${file.name}...`);
-                        base64 = await this.showCropper(file, 16 / 9);
-                    } else {
-                        this.showLoading(`Lecture du fichier : ${file.name}...`);
-                        base64 = await this.fileToBase64(file);
-                    }
+                        // Upload de l'original (Full HD)
+                        this.showLoading(`Upload de l'image HD : ${file.name}...`);
+                        const fullBase64 = await this.fileToBase64(file);
+                        finalUrl = `media/${folder}/full/${file.name}`;
+                        await this.github.updateFile(finalUrl, fullBase64, `Upload HD : ${title}`, true);
 
-                    this.showLoading(`Upload du média : ${file.name}...`);
-                    await this.github.updateFile(finalUrl, base64, `Upload média : ${title}`, true);
+                        // Upload de la miniature (Recadrée 16:9)
+                        this.showLoading(`Préparation de la miniature...`);
+                        const thumbBase64 = await this.showCropper(file, 16 / 9);
+                        finalThumb = `media/${folder}/thumbnails/${file.name}`;
+                        await this.github.updateFile(finalThumb, thumbBase64, `Upload Miniature : ${title}`, true);
+                    } else if (type === 'video') {
+                        // Upload de la vidéo
+                        this.showLoading(`Upload de la vidéo : ${file.name}...`);
+                        const videoBase64 = await this.fileToBase64(file);
+                        finalUrl = `media/${folder}/${categoryFolder}/${file.name}`;
+                        await this.github.updateFile(finalUrl, videoBase64, `Upload Vidéo : ${title}`, true);
+                    }
                 }
 
-                // 2. Upload de la miniature si présente
+                // 2. Upload de la miniature personnalisée si présente (écrase l'auto-générée)
                 if (thumbFileInput.files.length > 0) {
-                    this.showLoading(`Préparation de la miniature...`);
+                    this.showLoading(`Préparation de la miniature personnalisée...`);
                     const thumbBase64 = await this.showCropper(thumbFileInput.files[0], 16 / 9);
-                    if (!finalThumb) finalThumb = `media/thumbnails/${thumbFileInput.files[0].name}`;
-                    await this.github.updateFile(finalThumb, thumbBase64, `Upload miniature : ${title}`, true);
+                    finalThumb = `media/thumbnails/${thumbFileInput.files[0].name}`;
+                    await this.github.updateFile(finalThumb, thumbBase64, `Upload miniature perso : ${title}`, true);
                 }
 
                 // 3. Auto-miniature YouTube
                 if (type === 'youtube' && !finalThumb) {
                     const videoId = this.extractYouTubeId(finalUrl);
-                    finalThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                    finalThumb = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
                 }
 
                 const newItem = {

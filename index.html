@@ -898,7 +898,6 @@
                 document.getElementById('athlete-num').textContent = athleteData.number;
                 document.getElementById('athlete-bio').innerHTML = athleteData.bio;
                 document.getElementById('athlete-clubs').innerHTML = athleteData.clubs || "Aucun club renseigné";
-                document.getElementById('athlete-clubs').innerHTML = athleteData.clubs || "Aucun club renseigné";
 
                 const categories = ['Tous', ...new Set(allItems.map(item => item.category))];
                 renderFilters(categories);
