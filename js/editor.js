@@ -126,15 +126,25 @@ export class Editor {
 
                 // 1. Upload du fichier principal si présent
                 if (fileInput.files.length > 0) {
-                    this.showLoading(`Upload du média : ${fileInput.files[0].name}...`);
-                    const base64 = await this.fileToBase64(fileInput.files[0]);
+                    const file = fileInput.files[0];
+                    let base64;
+
+                    if (type === 'photo') {
+                        this.showLoading(`Préparation du recadrage : ${file.name}...`);
+                        base64 = await this.showCropper(file, 16 / 9);
+                    } else {
+                        this.showLoading(`Lecture du fichier : ${file.name}...`);
+                        base64 = await this.fileToBase64(file);
+                    }
+
+                    this.showLoading(`Upload du média : ${file.name}...`);
                     await this.github.updateFile(finalUrl, base64, `Upload média : ${title}`, true);
                 }
 
                 // 2. Upload de la miniature si présente
                 if (thumbFileInput.files.length > 0) {
-                    this.showLoading(`Upload de la miniature...`);
-                    const thumbBase64 = await this.fileToBase64(thumbFileInput.files[0]);
+                    this.showLoading(`Préparation de la miniature...`);
+                    const thumbBase64 = await this.showCropper(thumbFileInput.files[0], 16 / 9);
                     if (!finalThumb) finalThumb = `media/thumbnails/${thumbFileInput.files[0].name}`;
                     await this.github.updateFile(finalThumb, thumbBase64, `Upload miniature : ${title}`, true);
                 }
@@ -278,11 +288,12 @@ export class Editor {
             if (input.files.length === 0 || !this.github) return;
 
             const file = input.files[0];
-            this.showLoading("Mise à jour de la photo de profil...");
-
             try {
-                const base64 = await this.fileToBase64(file);
+                this.showLoading("Préparation du recadrage...");
+                const base64 = await this.showCropper(file, 1);
+
                 const path = `media/profile/${file.name}`;
+                this.showLoading("Mise à jour de la photo de profil...");
 
                 // 1. Upload de la photo
                 await this.github.updateFile(path, base64, "Mise à jour photo de profil", true);
@@ -311,5 +322,64 @@ export class Editor {
             current = current[parts[i]];
         }
         current[parts[parts.length - 1]] = value;
+    }
+
+    showCropper(file, ratio) {
+        return new Promise((resolve, reject) => {
+            const modal = document.getElementById('cropper-modal');
+            const image = document.getElementById('cropper-image');
+            const saveBtn = document.getElementById('cropper-save');
+            const cancelBtn = document.getElementById('cropper-cancel');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                image.src = e.target.result;
+                modal.style.display = 'flex';
+
+                const cropper = new Cropper(image, {
+                    aspectRatio: ratio,
+                    viewMode: 1,
+                    dragMode: 'move',
+                    autoCropArea: 1,
+                    restore: false,
+                    guides: true,
+                    center: true,
+                    highlight: false,
+                    cropBoxMovable: true,
+                    cropBoxResizable: true,
+                    toggleDragModeOnDblclick: false,
+                });
+
+                const cleanup = () => {
+                    cropper.destroy();
+                    modal.style.display = 'none';
+                };
+
+                saveBtn.onclick = () => {
+                    const canvas = cropper.getCroppedCanvas({
+                        width: ratio === 1 ? 400 : 1280, // High enough resolution
+                        height: ratio === 1 ? 400 : 720,
+                    });
+                    const base64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
+                    cleanup();
+                    resolve(base64);
+                };
+
+                cancelBtn.onclick = () => {
+                    cleanup();
+                    reject(new Error("Recadrage annulé"));
+                };
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = error => reject(error);
+        });
     }
 }
