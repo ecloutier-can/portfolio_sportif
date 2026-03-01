@@ -114,15 +114,18 @@ export class Editor {
                 let finalUrl = urlInput.value;
                 let finalThumb = thumbInput.value;
 
-                // 1. Détermination de la miniature automatique (YouTube)
+                // 1. Détermination de la miniature automatique
                 if (type === 'youtube' && !finalThumb) {
                     const videoId = this.extractYouTubeId(finalUrl);
                     if (videoId) {
                         finalThumb = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
                     }
+                } else if (finalUrl.includes('cloudinary.com') && !finalThumb) {
+                    // IA-powered Cloudinary Thumbnail: 800x450, crop fill, auto gravity, auto face, optimize
+                    finalThumb = finalUrl.replace('/upload/', '/upload/c_fill,g_auto,w_800,h_450,f_auto,q_auto/');
                 }
 
-                // 2. Fallback miniature si vide
+                // 2. Fallback miniature si toujours vide
                 if (!finalThumb) {
                     finalThumb = 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800&auto=format&fit=crop';
                 }
