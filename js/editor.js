@@ -14,6 +14,7 @@ export class Editor {
         this.setupEditableFields();
         this.setupSaveButton();
         this.initContentForm();
+        this.setupProfilePic();
     }
 
     showLoading(text) {
@@ -261,6 +262,46 @@ export class Editor {
             this.hideLoading();
             alert("Erreur lors de la suppression : " + err.message);
         }
+    }
+
+    setupProfilePic() {
+        const trigger = document.getElementById('profile-pic-trigger');
+        const input = document.getElementById('profile-pic-input');
+        const img = document.getElementById('athlete-pic');
+
+        trigger.onclick = () => {
+            if (!this.isAdmin) return;
+            input.click();
+        };
+
+        input.onchange = async () => {
+            if (input.files.length === 0 || !this.github) return;
+
+            const file = input.files[0];
+            this.showLoading("Mise à jour de la photo de profil...");
+
+            try {
+                const base64 = await this.fileToBase64(file);
+                const path = `media/profile/${file.name}`;
+
+                // 1. Upload de la photo
+                await this.github.updateFile(path, base64, "Mise à jour photo de profil", true);
+
+                // 2. Mettre à jour data.json localement
+                this.data.athlete.profilePicture = path;
+                img.src = path;
+
+                // 3. Sauvegarder data.json sur GitHub
+                const updatedContent = JSON.stringify(this.data, null, 2);
+                await this.github.updateFile('data.json', updatedContent, "Mise à jour photo de profil (data)");
+
+                this.hideLoading();
+                alert("Photo de profil mise à jour avec succès !");
+            } catch (err) {
+                this.hideLoading();
+                alert("Erreur lors de la mise à jour : " + err.message);
+            }
+        };
     }
 
     setDeepValue(obj, path, value) {
