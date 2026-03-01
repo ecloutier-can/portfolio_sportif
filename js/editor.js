@@ -172,9 +172,17 @@ export class Editor {
     }
 
     updateCategoryDatalist() {
-        const datalist = document.getElementById('category-list');
+        const datalist = document.getElementById('categories-list');
+        if (!datalist) return;
         const categories = [...new Set(this.data.items.map(item => item.category))];
         datalist.innerHTML = categories.map(cat => `<option value="${cat}">`).join('');
+    }
+
+    updateTagsDatalist() {
+        const datalist = document.getElementById('tags-list');
+        if (!datalist) return;
+        const tags = [...new Set(this.data.items.flatMap(item => item.tags || []))];
+        datalist.innerHTML = tags.map(tag => `<option value="${tag}">`).join('');
     }
 
     extractYouTubeId(url) {
@@ -233,6 +241,26 @@ export class Editor {
                 alert("Erreur : " + e.message);
             }
         };
+    }
+
+    async deleteItem(id) {
+        if (!confirm("Voulez-vous vraiment supprimer cet extrait ?")) return;
+
+        this.showLoading("Suppression de l'extrait...");
+        try {
+            const itemToDelete = this.data.items.find(item => item.id === id);
+            this.data.items = this.data.items.filter(item => item.id !== id);
+
+            const updatedContent = JSON.stringify(this.data, null, 2);
+            await this.github.updateFile('data.json', updatedContent, `Suppression extrait : ${itemToDelete ? itemToDelete.title : id}`);
+
+            this.hideLoading();
+            alert("Supprimé avec succès !");
+            location.reload();
+        } catch (err) {
+            this.hideLoading();
+            alert("Erreur lors de la suppression : " + err.message);
+        }
     }
 
     setDeepValue(obj, path, value) {

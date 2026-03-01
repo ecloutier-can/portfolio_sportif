@@ -114,6 +114,64 @@
             flex: 1;
         }
 
+        .search-container {
+            width: 100%;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .search-bar {
+            width: 100%;
+            padding: 15px 20px 15px 45px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .search-bar:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.07);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px rgba(19, 109, 236, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: transform 0.2s;
+        }
+
+        .delete-btn:hover {
+            transform: scale(1.1);
+        }
+
+        body.admin-mode .delete-btn {
+            display: flex;
+        }
+
         .admin-btn.logout {
             background: #ff4757;
         }
@@ -511,7 +569,8 @@
                 </div>
                 <div class="form-group">
                     <label>Tags (séparés par des virgules)</label>
-                    <input type="text" id="item-tags" placeholder="Ex: Précision, Finale, Extérieur">
+                    <input type="text" id="item-tags" placeholder="Ex: Précision, Finale, Extérieur" list="tags-list">
+                    <datalist id="tags-list"></datalist>
                 </div>
                 <div class="form-group">
                     <label>Description</label>
@@ -574,15 +633,25 @@
 
     <main>
         <header>
-            <h2>Exploration des séquences</h2>
+            <div class="header-content">
+                <h2>Exploration des séquences</h2>
+                <div class="search-container">
+                    <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input type="text" id="search-bar" class="search-bar"
+                        placeholder="Rechercher par mot-clé, tag, catégorie...">
+                </div>
+            </div>
             <div class="filters" id="filter-container">
-                <button class="filter-btn active" data-filter="Tous">Tous</button>
-                <!-- Filtres générés dynamiquement -->
+                <!-- Filtres et tags dynamiques -->
             </div>
         </header>
 
         <div class="portfolio-grid" id="portfolio-grid">
-            <!-- Items générés dynamiquement -->
+            <!-- Items filtrés par JS -->
         </div>
     </main>
 
@@ -601,19 +670,19 @@
         let athleteData = {};
         let editorInstance = null;
 
+        let currentFilter = 'Tous';
+        let searchQuery = '';
+
         async function initPortfolio() {
             try {
-                // Charger les données depuis data.json
                 const response = await fetch('data.json');
                 const data = await response.json();
 
                 athleteData = data.athlete;
-                allItems = data.items;
-
                 // Initialiser l'éditeur avec les données chargées
                 editorInstance = new Editor(data);
+                window.editorInstance = editorInstance;
 
-                // Mettre à jour le profil de l'athlète
                 document.getElementById('athlete-name').innerHTML = athleteData.name;
                 document.getElementById('athlete-pic').src = athleteData.profilePicture;
                 document.getElementById('athlete-pos').innerHTML = athleteData.position;
@@ -621,12 +690,15 @@
                 document.getElementById('athlete-num').textContent = athleteData.number;
                 document.getElementById('athlete-bio').innerHTML = athleteData.bio;
 
-                // Générer les filtres uniques
                 const categories = ['Tous', ...new Set(allItems.map(item => item.category))];
                 renderFilters(categories);
+                renderGrid();
 
-                // Rendre tous les items
-                renderGrid('Tous');
+                // Recherche en temps réel
+                document.getElementById('search-bar').oninput = (e) => {
+                    searchQuery = e.target.value.toLowerCase();
+                    renderGrid();
+                };
 
             } catch (error) {
                 console.error("Erreur de chargement des données:", error);
@@ -638,36 +710,46 @@
             container.innerHTML = '';
             categories.forEach(cat => {
                 const btn = document.createElement('button');
-                btn.className = `filter-btn ${cat === 'Tous' ? 'active' : ''}`;
+                btn.className = `filter-btn ${cat === currentFilter ? 'active' : ''}`;
                 btn.textContent = cat;
-                btn.dataset.filter = cat;
                 btn.onclick = () => {
+                    currentFilter = cat;
                     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
-                    renderGrid(cat);
+                    renderGrid();
                 };
                 container.appendChild(btn);
             });
         }
 
-        function renderGrid(filter) {
+        function renderGrid() {
             const grid = document.getElementById('portfolio-grid');
             grid.innerHTML = '';
 
-            const filteredItems = filter === 'Tous'
-                ? allItems
-                : allItems.filter(item => item.category === filter);
+            const filteredItems = allItems.filter(item => {
+                const matchesFilter = currentFilter === 'Tous' || item.category === currentFilter;
+                const matchesSearch = !searchQuery ||
+                    item.title.toLowerCase().includes(searchQuery) ||
+                    item.description.toLowerCase().includes(searchQuery) ||
+                    (item.tags && item.tags.some(t => t.toLowerCase().includes(searchQuery)));
+                return matchesFilter && matchesSearch;
+            });
 
             filteredItems.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'portfolio-item';
-                card.onclick = () => openModal(item);
 
                 const isVideo = item.type === 'video' || item.type === 'youtube';
                 const tagsHtml = item.tags ? item.tags.map(t => `<span class="tag-badge">#${t}</span>`).join(' ') : '';
 
                 card.innerHTML = `
-                    <div class="thumbnail-container">
+                    <button class="delete-btn" title="Supprimer" onclick="event.stopPropagation(); window.editorInstance.deleteItem(${item.id})">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                    <div class="thumbnail-container" onclick="openModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
                         <img src="${item.thumbnail}" alt="${item.title}">
                         <span class="category-badge">${item.category}</span>
                         ${isVideo ? `<div class="play-icon">
@@ -676,7 +758,7 @@
                             </svg>
                         </div>` : ''}
                     </div>
-                    <div class="item-content">
+                    <div class="item-content" onclick="openModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
                         <h3>${item.title}</h3>
                         <div class="tags-container">${tagsHtml}</div>
                         <p>${item.description}</p>
