@@ -1,9 +1,9 @@
 {
   "athlete": {
-    "name": "<p>Mathis cloutier</p>",
-    "position": "<p>Attaquant / Ailier</p>",
+    "name": "<p>Mathis CLoutier</p>",
+    "position": "Attaquant / Ailier Droite",
     "number": "07",
-    "bio": "<p>Joueur polyvalent avec une excellente vision de jeu et une précision de tir redoutable. Évoluant actuellement en ligue de développement provinciale(LDP) et se joindra au Élan de Garneau en ligue division collégiale à l'automne 2026,</p>",
+    "bio": "Joueur polyvalent avec une excellente vision de jeu et une précision de tir redoutable. Évoluant actuellement en ligue régionale.",
     "profilePicture": "https://images.unsplash.com/photo-1543351611-58f69d7c1781?q=80&w=200&h=200&auto=format&fit=crop"
   },
   "items": [
