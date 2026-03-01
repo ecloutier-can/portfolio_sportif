@@ -60,19 +60,6 @@
       ],
       "description": "Entraînement international lors du camp en Belgique.",
       "thumbnail": "https://images.unsplash.com/photo-1543351611-58f69d7c1781?q=80&w=800&auto=format&fit=crop"
-    },
-    {
-      "id": 1772379704628,
-      "title": "Drapeau Belgique",
-      "type": "photo",
-      "url": "media/photos/general/579625320_10174266777952037_5196166097931745360_n.jpg",
-      "category": "Drapeau",
-      "tags": [
-        "Belgique",
-        "Drapeau"
-      ],
-      "description": "Photo prise lors du séjour en Belgique.",
-      "thumbnail": "https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?q=80&w=800&auto=format&fit=crop"
     }
   ]
 }
