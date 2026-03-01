@@ -101,15 +101,6 @@ export class Editor {
             form.reset();
         };
 
-        // Suggestion de chemin local quand on choisit un fichier
-        fileInput.onchange = () => {
-            if (fileInput.files.length > 0) {
-                const file = fileInput.files[0];
-                const folder = typeSelect.value === 'video' ? 'videos' : 'photos';
-                const folderCategory = document.getElementById('item-category').value.toLowerCase() || 'general';
-                urlInput.value = `media/${folder}/${folderCategory}/${file.name}`;
-            }
-        };
 
         form.onsubmit = async (e) => {
             e.preventDefault();
@@ -124,45 +115,17 @@ export class Editor {
                 let finalUrl = urlInput.value;
                 let finalThumb = thumbInput.value;
 
-                // 1. Upload du média
-                if (fileInput.files.length > 0) {
-                    const file = fileInput.files[0];
-                    const folder = type === 'video' ? 'videos' : 'photos';
-                    const categoryFolder = category.toLowerCase().replace(/\s+/g, '_');
-
-                    if (type === 'photo') {
-                        // Upload de l'original (Full HD)
-                        this.showLoading(`Upload de l'image HD : ${file.name}...`);
-                        const fullBase64 = await this.fileToBase64(file);
-                        finalUrl = `media/${folder}/full/${file.name}`;
-                        await this.github.updateFile(finalUrl, fullBase64, `Upload HD : ${title}`, true);
-
-                        // Upload de la miniature (Recadrée 16:9)
-                        this.showLoading(`Préparation de la miniature...`);
-                        const thumbBase64 = await this.showCropper(file, 16 / 9);
-                        finalThumb = `media/${folder}/thumbnails/${file.name}`;
-                        await this.github.updateFile(finalThumb, thumbBase64, `Upload Miniature : ${title}`, true);
-                    } else if (type === 'video') {
-                        // Upload de la vidéo
-                        this.showLoading(`Upload de la vidéo : ${file.name}...`);
-                        const videoBase64 = await this.fileToBase64(file);
-                        finalUrl = `media/${folder}/${categoryFolder}/${file.name}`;
-                        await this.github.updateFile(finalUrl, videoBase64, `Upload Vidéo : ${title}`, true);
+                // 1. Détermination de la miniature automatique (YouTube)
+                if (type === 'youtube' && !finalThumb) {
+                    const videoId = this.extractYouTubeId(finalUrl);
+                    if (videoId) {
+                        finalThumb = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
                     }
                 }
 
-                // 2. Upload de la miniature personnalisée si présente (écrase l'auto-générée)
-                if (thumbFileInput.files.length > 0) {
-                    this.showLoading(`Préparation de la miniature personnalisée...`);
-                    const thumbBase64 = await this.showCropper(thumbFileInput.files[0], 16 / 9);
-                    finalThumb = `media/thumbnails/${thumbFileInput.files[0].name}`;
-                    await this.github.updateFile(finalThumb, thumbBase64, `Upload miniature perso : ${title}`, true);
-                }
-
-                // 3. Auto-miniature YouTube
-                if (type === 'youtube' && !finalThumb) {
-                    const videoId = this.extractYouTubeId(finalUrl);
-                    finalThumb = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+                // 2. Fallback miniature si vide
+                if (!finalThumb) {
+                    finalThumb = 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800&auto=format&fit=crop';
                 }
 
                 const newItem = {
@@ -173,7 +136,7 @@ export class Editor {
                     category,
                     tags,
                     description,
-                    thumbnail: finalThumb || 'media/thumbnails/default.jpg'
+                    thumbnail: finalThumb
                 };
 
                 this.data.items.push(newItem);

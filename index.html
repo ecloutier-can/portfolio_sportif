@@ -719,23 +719,18 @@
                 <div class="form-group">
                     <label>Type</label>
                     <select id="item-type">
-                        <option value="photo">Photo</option>
-                        <option value="video">Vidéo Locale</option>
-                        <option value="youtube">Vidéo YouTube</option>
+                        <option value="photo">Photo (Lien externe)</option>
+                        <option value="video">Vidéo (Lien direct)</option>
+                        <option value="youtube">Vidéo YouTube / Social</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Fichier local (Optionnel - remplira l'URL)</label>
-                    <input type="file" id="item-file" accept="image/*,video/*">
+                    <label>URL du média / ID YouTube / Lien Social</label>
+                    <input type="text" id="item-url" required placeholder="https://... ou ID YouTube">
                 </div>
                 <div class="form-group">
-                    <label>URL du média / ID YouTube</label>
-                    <input type="text" id="item-url" required placeholder="media/photos/img.jpg ou lien YT">
-                </div>
-                <div class="form-group">
-                    <label>Miniature (obligatoire pour vidéos)</label>
-                    <input type="text" id="item-thumbnail" placeholder="media/thumbnails/thumb.jpg">
-                    <input type="file" id="item-thumb-file" accept="image/*" style="margin-top:5px; font-size: 0.8rem;">
+                    <label>URL de la Miniature (Optionnel pour YouTube)</label>
+                    <input type="text" id="item-thumbnail" placeholder="https://... (Lien vers une image)">
                 </div>
                 <div class="form-group">
                     <label>Catégorie (Filtre)</label>
