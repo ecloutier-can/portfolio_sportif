@@ -1,9 +1,9 @@
 {
   "athlete": {
-    "name": "Marc Griezmann",
-    "position": "Attaquant / Ailier Droite",
+    "name": "<p>Mathis cloutier</p>",
+    "position": "<p>Attaquant / Ailier</p>",
     "number": "07",
-    "bio": "Joueur polyvalent avec une excellente vision de jeu et une précision de tir redoutable. Évoluant actuellement en ligue régionale.",
+    "bio": "<p>Joueur polyvalent avec une excellente vision de jeu et une précision de tir redoutable. Évoluant actuellement en ligue de développement provinciale(LDP) et se joindra au Élan de Garneau en ligue division collégiale à l'automne 2026,</p>",
     "profilePicture": "https://images.unsplash.com/photo-1543351611-58f69d7c1781?q=80&w=200&h=200&auto=format&fit=crop"
   },
   "items": [
@@ -15,7 +15,10 @@
       "category": "Buts",
       "title": "Coup franc direct - Pleine lucarne",
       "description": "Exécution d'un coup franc à 25 mètres lors de la finale de coupe.",
-      "tags": ["Précision", "Coup de pied arrêté"]
+      "tags": [
+        "Précision",
+        "Coup de pied arrêté"
+      ]
     },
     {
       "id": 2,
@@ -25,7 +28,10 @@
       "category": "Matchs",
       "title": "Duel aérien remporté",
       "description": "Concentration lors d'un corner décisif.",
-      "tags": ["Athlétisme", "Détente"]
+      "tags": [
+        "Athlétisme",
+        "Détente"
+      ]
     },
     {
       "id": 3,
@@ -35,7 +41,10 @@
       "category": "Entraînements",
       "title": "Drill de vitesse et agilité",
       "description": "Travail intensif sur les changements de direction.",
-      "tags": ["Agilité", "Condition physique"]
+      "tags": [
+        "Agilité",
+        "Condition physique"
+      ]
     }
   ]
 }
