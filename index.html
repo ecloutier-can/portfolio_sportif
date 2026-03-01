@@ -695,6 +695,54 @@
             background: rgba(255, 255, 255, 0.1);
             color: white;
         }
+
+        .supported-platforms {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            flex-wrap: wrap;
+        }
+
+        .platform-tag {
+            font-size: 0.9rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            opacity: 0.7;
+            transition: all 0.3s ease;
+            cursor: default;
+            text-transform: uppercase;
+        }
+
+        .platform-tag:hover {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+
+        .tag-youtube {
+            color: #FF0000;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .tag-vimeo {
+            color: #1AB7EA;
+            font-style: italic;
+            font-family: 'Helvetica', sans-serif;
+        }
+
+        .tag-instagram {
+            background: -webkit-linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .tag-cloudinary {
+            color: #3448C5;
+            font-family: 'Inter', sans-serif;
+        }
     </style>
 </head>
 
@@ -711,14 +759,10 @@
     <div id="add-content-modal" class="admin-modal">
         <div class="admin-modal-content">
             <div class="supported-platforms">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/e/ef/Youtube_logo.png" alt="YouTube"
-                    title="YouTube">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Vimeo_logo.svg/2560px-Vimeo_logo.svg.png"
-                    alt="Vimeo" title="Vimeo">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_logo_2022.svg/1200px-Instagram_logo_2022.svg.png"
-                    alt="Instagram" title="Instagram">
-                <img src="https://cloudinary-res.cloudinary.com/image/upload/dpr_2.0,w_80/v1/cloudinary_logo_for_white_bg.png"
-                    alt="Cloudinary" title="Cloudinary">
+                <span class="platform-tag tag-youtube">YouTube</span>
+                <span class="platform-tag tag-vimeo">Vimeo</span>
+                <span class="platform-tag tag-instagram">Instagram</span>
+                <span class="platform-tag tag-cloudinary">Cloudinary</span>
             </div>
             <h2>Nouvel Extrait</h2>
             <form id="add-content-form">
