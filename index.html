@@ -679,6 +679,7 @@
                 const data = await response.json();
 
                 athleteData = data.athlete;
+                allItems = data.items;
                 // Initialiser l'éditeur avec les données chargées
                 editorInstance = new Editor(data);
                 window.editorInstance = editorInstance;
