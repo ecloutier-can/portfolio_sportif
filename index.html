@@ -346,6 +346,26 @@
             color: var(--accent-color);
         }
 
+        .section-title {
+            color: var(--accent-color);
+            font-size: 0.8rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            margin-top: 25px;
+            text-align: left;
+            width: 100%;
+            padding-left: 10px;
+        }
+
+        .filter-hint {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-right: 15px;
+            font-weight: 600;
+        }
+
         /* Main Content */
         main {
             margin-left: 300px;
@@ -787,10 +807,19 @@
             </div>
         </div>
 
+        <div class="section-title">Bio :</div>
         <div class="edit-overlay" data-field="athlete.bio">
             <p id="athlete-bio"
-                style="font-size: 0.85rem; color: var(--text-secondary); text-align: center; line-height: 1.5; padding: 0 10px;">
+                style="font-size: 0.85rem; color: var(--text-secondary); text-align: left; line-height: 1.5; padding: 0 10px;">
             </p>
+            <span class="edit-badge">Éditer</span>
+        </div>
+
+        <div class="section-title">Club :</div>
+        <div class="edit-overlay" data-field="athlete.clubs">
+            <div id="athlete-clubs"
+                style="font-size: 0.85rem; color: var(--text-secondary); text-align: left; line-height: 1.5; padding: 0 10px;">
+            </div>
             <span class="edit-badge">Éditer</span>
         </div>
     </aside>
@@ -809,8 +838,11 @@
                         placeholder="Rechercher par mot-clé, tag, catégorie...">
                 </div>
             </div>
-            <div class="filters" id="filter-container">
-                <!-- Filtres et tags dynamiques -->
+            <div style="display: flex; align-items: center;">
+                <span class="filter-hint">Personnaliser l'affichage :</span>
+                <div class="filters" id="filter-container">
+                    <!-- Filtres et tags dynamiques -->
+                </div>
             </div>
         </header>
 
@@ -862,10 +894,11 @@
 
                 document.getElementById('athlete-name').innerHTML = athleteData.name;
                 document.getElementById('athlete-pic').src = athleteData.profilePicture;
-                document.getElementById('athlete-pos').innerHTML = athleteData.position;
                 document.getElementById('athlete-pos-label').innerHTML = athleteData.position;
                 document.getElementById('athlete-num').textContent = athleteData.number;
                 document.getElementById('athlete-bio').innerHTML = athleteData.bio;
+                document.getElementById('athlete-clubs').innerHTML = athleteData.clubs || "Aucun club renseigné";
+                document.getElementById('athlete-clubs').innerHTML = athleteData.clubs || "Aucun club renseigné";
 
                 const categories = ['Tous', ...new Set(allItems.map(item => item.category))];
                 renderFilters(categories);
