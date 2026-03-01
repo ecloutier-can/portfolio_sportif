@@ -59,6 +59,19 @@
       ],
       "description": "Test d'ajout...à suprimer",
       "thumbnail": "https://img.youtube.com/vi/44kGXLlVdEg/maxresdefault.jpg"
+    },
+    {
+      "id": 1772400472473,
+      "title": "2025-Match VS RDP",
+      "type": "photo",
+      "url": "https://cegepth-my.sharepoint.com/:i:/g/personal/ecloutier_cegepthetford_ca/IQC1l-ySEy9eS7L3g5rXlrmyAakWWAAjtTacBFyQ8y3oo5I?e=TFQnqX",
+      "category": "Match",
+      "tags": [
+        "Match",
+        "Déplacement"
+      ],
+      "description": "Test photo...à supprimer",
+      "thumbnail": "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800&auto=format&fit=crop"
     }
   ]
 }
