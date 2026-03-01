@@ -13,24 +13,23 @@ export class Editor {
         this.setupAdminAuth();
         this.setupEditableFields();
         this.setupSaveButton();
+        this.initContentForm();
     }
 
     setupAdminAuth() {
         const loginBtn = document.getElementById('admin-login-btn');
         const logoutBtn = document.getElementById('admin-logout-btn');
         const saveBtn = document.getElementById('admin-save-btn');
+        const addBtn = document.getElementById('admin-add-btn');
 
         loginBtn.onclick = async () => {
             const token = prompt("Entrez votre GitHub Personal Access Token :");
             if (token) {
                 try {
-                    // Pour cet exemple, on demande aussi le owner/repo
-                    // Dans un vrai projet, on pourrait le hardcoder ou le détecter
-                    const owner = prompt("GitHub Owner (ex: ecloutier-can) :", "ecloutier-can");
-                    const repo = prompt("GitHub Repo (ex: portfolio_sportif) :", "portfolio_sportif");
+                    const owner = prompt("GitHub Owner :", "ecloutier-can");
+                    const repo = prompt("GitHub Repo :", "portfolio_sportif");
 
                     this.github = new GitHubService(owner, repo, token);
-                    // Vérifier si le token est valide en tentant de lire data.json
                     await this.github.getFile('data.json');
 
                     this.isAdmin = true;
@@ -38,9 +37,11 @@ export class Editor {
                     loginBtn.style.display = 'none';
                     logoutBtn.style.display = 'block';
                     saveBtn.style.display = 'block';
+                    addBtn.style.display = 'block';
+                    this.updateCategoryDatalist();
                     alert("Mode Admin activé !");
                 } catch (e) {
-                    alert("Erreur d'authentification ou accès au dépôt impossible : " + e.message);
+                    alert("Erreur d'authentification : " + e.message);
                 }
             }
         };
@@ -51,9 +52,80 @@ export class Editor {
             loginBtn.style.display = 'block';
             logoutBtn.style.display = 'none';
             saveBtn.style.display = 'none';
-            // Détruire les instances Quill si nécessaire
+            addBtn.style.display = 'none';
             location.reload();
         };
+    }
+
+    initContentForm() {
+        const modal = document.getElementById('add-content-modal');
+        const addBtn = document.getElementById('admin-add-btn');
+        const cancelBtn = document.getElementById('cancel-add');
+        const form = document.getElementById('add-content-form');
+        const typeSelect = document.getElementById('item-type');
+        const urlInput = document.getElementById('item-url');
+        const thumbInput = document.getElementById('item-thumbnail');
+
+        addBtn.onclick = () => {
+            modal.style.display = 'flex';
+            this.updateCategoryDatalist();
+        };
+
+        cancelBtn.onclick = () => {
+            modal.style.display = 'none';
+            form.reset();
+        };
+
+        typeSelect.onchange = () => {
+            if (typeSelect.value === 'youtube') {
+                urlInput.placeholder = "URL YouTube (ex: https://www.youtube.com/watch?v=...)";
+            } else {
+                urlInput.placeholder = "Chemin local (ex: media/photos/image.jpg)";
+            }
+        };
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+
+            const newItem = {
+                id: Date.now(),
+                title: document.getElementById('item-title').value,
+                type: typeSelect.value,
+                url: urlInput.value,
+                category: document.getElementById('item-category').value,
+                description: document.getElementById('item-description').value,
+                thumbnail: thumbInput.value
+            };
+
+            // Auto-génération de la miniature YouTube si vide
+            if (newItem.type === 'youtube' && !newItem.thumbnail) {
+                const videoId = this.extractYouTubeId(newItem.url);
+                newItem.thumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+            }
+
+            this.data.items.push(newItem);
+
+            try {
+                const updatedContent = JSON.stringify(this.data, null, 2);
+                await this.github.updateFile('data.json', updatedContent, `Ajout de l'extrait : ${newItem.title}`);
+                alert("Extrait ajouté avec succès !");
+                location.reload();
+            } catch (err) {
+                alert("Erreur lors de l'ajout : " + err.message);
+            }
+        };
+    }
+
+    updateCategoryDatalist() {
+        const datalist = document.getElementById('category-list');
+        const categories = [...new Set(this.data.items.map(item => item.category))];
+        datalist.innerHTML = categories.map(cat => `<option value="${cat}">`).join('');
+    }
+
+    extractYouTubeId(url) {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : url;
     }
 
     setupEditableFields() {
