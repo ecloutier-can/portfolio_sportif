@@ -327,27 +327,97 @@
         }
 
         .filters {
-            display: flex;
-            gap: 15px;
+            position: relative;
+            display: inline-block;
         }
 
-        .filter-btn {
+        .filter-dropdown-trigger {
             background: var(--card-bg);
             border: 1px solid var(--glass-border);
             color: var(--text-primary);
-            padding: 8px 20px;
-            border-radius: 25px;
+            padding: 10px 25px;
+            border-radius: 12px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 15px;
             transition: all 0.3s ease;
-            font-size: 0.9rem;
-            backdrop-filter: blur(5px);
+            font-size: 0.95rem;
+            backdrop-filter: blur(10px);
+            min-width: 180px;
+            justify-content: space-between;
         }
 
-        .filter-btn:hover,
-        .filter-btn.active {
-            background: var(--accent-color);
+        .filter-dropdown-trigger:hover {
             border-color: var(--accent-color);
-            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .filter-dropdown-trigger.active {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px rgba(19, 109, 236, 0.2);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 10px;
+            background: rgba(15, 15, 15, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            overflow: hidden;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            animation: slideDown 0.2s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 12px 20px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(19, 109, 236, 0.1);
+            color: white;
+        }
+
+        .dropdown-item.active {
+            color: var(--accent-color);
+            background: rgba(19, 109, 236, 0.05);
+            font-weight: 600;
+        }
+
+        .dropdown-item .check {
+            display: none;
+        }
+
+        .dropdown-item.active .check {
+            display: inline;
         }
 
         /* Portfolio Grid */
@@ -708,18 +778,56 @@
 
         function renderFilters(categories) {
             const container = document.getElementById('filter-container');
-            container.innerHTML = '';
-            categories.forEach(cat => {
-                const btn = document.createElement('button');
-                btn.className = `filter-btn ${cat === currentFilter ? 'active' : ''}`;
-                btn.textContent = cat;
-                btn.onclick = () => {
-                    currentFilter = cat;
-                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
+            container.innerHTML = `
+                <button class="filter-dropdown-trigger" id="filter-trigger">
+                    <span id="current-filter-text">${currentFilter}</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+                <div class="dropdown-menu" id="filter-menu">
+                    ${categories.map(cat => `
+                        <div class="dropdown-item ${cat === currentFilter ? 'active' : ''}" data-value="${cat}">
+                            ${cat}
+                            <svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            const trigger = document.getElementById('filter-trigger');
+            const menu = document.getElementById('filter-menu');
+
+            trigger.onclick = (e) => {
+                e.stopPropagation();
+                menu.classList.toggle('show');
+                trigger.classList.toggle('active');
+            };
+
+            document.querySelectorAll('.dropdown-item').forEach(item => {
+                item.onclick = (e) => {
+                    e.stopPropagation();
+                    const val = item.getAttribute('data-value');
+                    currentFilter = val;
+                    document.getElementById('current-filter-text').textContent = val;
+                    menu.classList.remove('show');
+                    trigger.classList.remove('active');
                     renderGrid();
+                    // Relancer le rendu des filtres pour l'état active (optionnel, mais propre)
+                    renderFilters(categories);
                 };
-                container.appendChild(btn);
+            });
+
+            // Fermer si clic ailleurs
+            document.addEventListener('click', (event) => {
+                if (!event.target.closest('.filters')) {
+                    if (menu.classList.contains('show')) {
+                        menu.classList.remove('show');
+                        trigger.classList.remove('active');
+                    }
+                }
             });
         }
 
