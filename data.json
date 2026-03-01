@@ -46,20 +46,6 @@
         "Agilité",
         "Condition physique"
       ]
-    },
-    {
-      "id": 1772379032670,
-      "title": "Photo de voyage - Belgique",
-      "type": "photo",
-      "url": "media/photos/general/579190219_10174274339607037_8111073106374871723_n.jpg",
-      "category": "Camp",
-      "tags": [
-        "Voyage",
-        "Belgique",
-        "Camp"
-      ],
-      "description": "Entraînement international lors du camp en Belgique.",
-      "thumbnail": "https://images.unsplash.com/photo-1543351611-58f69d7c1781?q=80&w=800&auto=format&fit=crop"
     }
   ]
 }
