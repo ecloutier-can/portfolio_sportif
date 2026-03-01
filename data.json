@@ -46,6 +46,19 @@
         "Agilité",
         "Condition physique"
       ]
+    },
+    {
+      "id": 1772399509911,
+      "title": "Extrait club Optimum",
+      "type": "youtube",
+      "url": "https://www.youtube.com/watch?v=44kGXLlVdEg",
+      "category": "Présentation",
+      "tags": [
+        "Optimum",
+        "Philosophie"
+      ],
+      "description": "Test d'ajout...à suprimer",
+      "thumbnail": "https://img.youtube.com/vi/44kGXLlVdEg/maxresdefault.jpg"
     }
   ]
 }
