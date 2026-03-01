@@ -45,6 +45,19 @@
         "Agilité",
         "Condition physique"
       ]
+    },
+    {
+      "id": 1772379032670,
+      "title": "Test_belgique",
+      "type": "photo",
+      "url": "media/photos/general/579190219_10174274339607037_8111073106374871723_n.jpg",
+      "category": "Camp",
+      "tags": [
+        "voyage",
+        "belgique"
+      ],
+      "description": "test",
+      "thumbnail": "test"
     }
   ]
 }
