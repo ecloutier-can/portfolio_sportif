@@ -58,6 +58,16 @@
       ],
       "description": "test",
       "thumbnail": "test"
+    },
+    {
+      "id": 1772379704628,
+      "title": "Test_belgique",
+      "type": "photo",
+      "url": "media/photos/general/579625320_10174266777952037_5196166097931745360_n.jpg",
+      "category": "Drapeau",
+      "tags": [],
+      "description": "",
+      "thumbnail": "Belgique"
     }
   ]
 }
