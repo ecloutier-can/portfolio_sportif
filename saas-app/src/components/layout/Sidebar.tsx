@@ -1,75 +1,90 @@
 'use client';
 
+import React from 'react';
 import ProfilePicUpload from '@/components/ui/ProfilePicUpload';
 
 interface SidebarProps {
-    athlete: {
-        name: string;
-        position: string;
-        number: string;
+    profile: {
+        id: string;
+        username: string;
+        full_name: string;
         bio: string;
         clubs: string;
-        profilePicture: string;
-        id?: string;
+        profile_picture_url: string;
+        position: string;
+        number: string;
     };
     isAdmin?: boolean;
     onRefresh?: () => void;
 }
 
-export default function Sidebar({ athlete, isAdmin, onRefresh }: SidebarProps) {
+const Sidebar: React.FC<SidebarProps> = ({ profile, isAdmin = false, onRefresh }) => {
     return (
-        <aside className="w-full md:w-[300px] bg-white/[0.02] backdrop-blur-xl border-r border-white/10 p-10 flex flex-col items-center md:fixed md:h-screen z-10 overflow-y-auto">
-            <div className="mb-6">
-                {isAdmin && athlete.id ? (
-                    <ProfilePicUpload
-                        userId={athlete.id}
-                        currentPic={athlete.profilePicture}
-                        onSuccess={onRefresh || (() => { })}
-                    />
-                ) : (
-                    <div className="w-36 h-36 rounded-full overflow-hidden border-2 border-[#136dec] shadow-[0_0_20px_rgba(19,109,236,0.3)] bg-[#111]">
+        <aside className="w-[320px] h-full bg-[#080808] border-r border-white/5 flex flex-col hidden md:flex">
+            {/* Profile Picture Section */}
+            <div className="p-8 pb-4 flex justify-center relative group">
+                <div className="w-48 h-48 rounded-full overflow-hidden border-2 border-[#136dec] shadow-[0_0_50px_rgba(19,109,236,0.2)]">
+                    {isAdmin ? (
+                        <ProfilePicUpload
+                            userId={profile.id}
+                            currentUrl={profile.profile_picture_url}
+                            onSuccess={onRefresh || (() => { })}
+                        />
+                    ) : (
                         <img
-                            src={athlete.profilePicture || '/default-avatar.png'}
-                            alt={athlete.name}
+                            src={profile.profile_picture_url || '/default-avatar.png'}
+                            alt={profile.full_name}
                             className="w-full h-full object-cover"
                         />
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
 
-            <div className="text-center mb-10 w-full">
-                <h1 className="text-xl font-black tracking-tight line-clamp-2">{athlete.name}</h1>
-                <p className="text-[#a0a0a0] text-[10px] font-bold uppercase tracking-[2px] mt-2 text-[#136dec]">{athlete.position}</p>
-            </div>
-
-            <div className="w-full space-y-8">
-                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 space-y-3">
-                    <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
-                        <span className="text-[#444]">Numéro</span>
-                        <span className="text-[#136dec]">{athlete.number}</span>
-                    </div>
-                    <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
-                        <span className="text-[#444]">Position</span>
-                        <span className="text-[#136dec]">{athlete.position}</span>
+            {/* Info Section */}
+            <div className="p-8 pt-4 flex-1 space-y-8 overflow-y-auto custom-scrollbar">
+                <div className="space-y-1 text-center font-black">
+                    <h1 className="text-2xl uppercase tracking-tighter text-white">
+                        {profile.full_name || profile.username}
+                    </h1>
+                    <div className="flex items-center justify-center gap-2 text-[#136dec] uppercase tracking-[4px] text-[10px]">
+                        <span>{profile.position || "Athlète"}</span>
+                        {profile.number && (
+                            <>
+                                <span className="w-1 h-1 bg-[#136dec] rounded-full opacity-50" />
+                                <span>#{profile.number}</span>
+                            </>
+                        )}
                     </div>
                 </div>
 
-                <div>
-                    <h3 className="text-[#136dec] text-[10px] font-black uppercase tracking-[3px] mb-4 ml-1 opacity-50">Bio</h3>
-                    <div
-                        className="text-[#a0a0a0] text-sm leading-relaxed px-1 prose prose-invert max-w-none"
-                        dangerouslySetInnerHTML={{ __html: athlete.bio || "Aucune bio renseignée." }}
-                    />
-                </div>
+                <div className="space-y-6">
+                    <div className="space-y-2">
+                        <h3 className="text-[10px] uppercase tracking-[3px] text-[#333] font-black border-b border-white/5 pb-2">Bio:</h3>
+                        <div
+                            className="text-white/70 text-sm leading-relaxed font-light"
+                            dangerouslySetInnerHTML={{ __html: profile.bio || "Aucune biographie disponible." }}
+                        />
+                    </div>
 
-                <div>
-                    <h3 className="text-[#136dec] text-[10px] font-black uppercase tracking-[3px] mb-4 ml-1 opacity-50">Parcours</h3>
-                    <div
-                        className="text-[#a0a0a0] text-sm leading-relaxed px-1 prose prose-invert max-w-none"
-                        dangerouslySetInnerHTML={{ __html: athlete.clubs || "Aucun club renseigné." }}
-                    />
+                    <div className="space-y-2">
+                        <h3 className="text-[10px] uppercase tracking-[3px] text-[#333] font-black border-b border-white/5 pb-2">Clubs:</h3>
+                        <div
+                            className="text-white/70 text-sm leading-relaxed font-light clubs-list"
+                            dangerouslySetInnerHTML={{ __html: profile.clubs || "Historique des clubs non renseigné." }}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Footer Branding */}
+            <div className="p-8 border-t border-white/5">
+                <div className="flex items-center gap-2 opacity-30 grayscale">
+                    <div className="w-6 h-6 bg-[#136dec] rounded shadow-sm" />
+                    <span className="font-black tracking-tighter text-[10px] uppercase">ProAthlete Platform</span>
                 </div>
             </div>
         </aside>
     );
-}
+};
+
+export default Sidebar;

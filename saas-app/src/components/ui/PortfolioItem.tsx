@@ -1,90 +1,111 @@
 'use client';
 
-import { supabase } from '@/lib/supabase';
+import React, { useState } from 'react';
+import { Play, ExternalLink, Trash2, Maximize2 } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { doc, deleteDoc } from 'firebase/firestore';
 
 interface PortfolioItemProps {
     item: {
         id: string;
         title: string;
         type: string;
+        category: string;
         url: string;
         thumbnail_url: string;
-        category: string;
-        tags: string[];
-        description: string;
+        description?: string;
+        tags?: string[];
     };
     isAdmin?: boolean;
-    onRefresh?: () => void;
+    onDelete?: () => void;
 }
 
-export default function PortfolioItem({ item, isAdmin, onRefresh }: PortfolioItemProps) {
-    const isVideo = item.type === 'video' || item.type === 'youtube';
+const PortfolioItem: React.FC<PortfolioItemProps> = ({ item, isAdmin = false, onDelete }) => {
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const handleDelete = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!confirm('Voulez-vous vraiment supprimer cet extrait ?')) return;
+        if (!window.confirm("Supprimer ce média ?")) return;
 
-        const { error } = await supabase
-            .from('media_items')
-            .delete()
-            .eq('id', item.id);
-
-        if (error) {
-            alert(error.message);
-        } else if (onRefresh) {
-            onRefresh();
+        setIsDeleting(true);
+        try {
+            await deleteDoc(doc(db, 'media_items', item.id));
+            if (onDelete) onDelete();
+        } catch (error) {
+            console.error("Error deleting media:", error);
+            alert("Erreur lors de la suppression.");
+        } finally {
+            setIsDeleting(false);
         }
     };
 
-    return (
-        <div className="group relative bg-white/[0.03] border border-white/10 rounded-3xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:border-white/20 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-            {isAdmin && (
-                <button
-                    onClick={handleDelete}
-                    className="absolute top-4 left-4 z-10 w-8 h-8 rounded-full bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border border-white/10"
-                >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                </button>
-            )}
+    const openFullscreen = () => {
+        window.open(item.url, '_blank');
+    };
 
-            <div className="aspect-video relative overflow-hidden">
+    return (
+        <div className="group relative bg-[#0a0a0a] border border-white/5 rounded-3xl overflow-hidden aspect-[4/5] flex flex-col transition-all duration-500 hover:scale-[1.03] hover:border-[#136dec]/50 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer" onClick={openFullscreen}>
+            {/* Thumbnail Container */}
+            <div className="relative flex-1 overflow-hidden bg-[#111]">
                 <img
                     src={item.thumbnail_url}
                     alt={item.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-70 group-hover:opacity-100"
                 />
-                <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest">
-                    {item.category}
-                </div>
-                {isVideo && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/0 transition-colors">
-                        <div className="w-12 h-12 bg-[#136dec] rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(19,109,236,0.5)]">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-                                <path d="M8 5v14l11-7z" />
-                            </svg>
+
+                {/* Overlay Controls */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4">
+                    {item.type === 'Vidéo' || item.type === 'Youtube' ? (
+                        <div className="w-16 h-16 bg-[#136dec] rounded-full flex items-center justify-center shadow-2xl scale-75 group-hover:scale-100 transition-transform duration-500">
+                            <Play fill="white" className="ml-1" />
                         </div>
+                    ) : (
+                        <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center shadow-2xl scale-75 group-hover:scale-100 transition-transform duration-500">
+                            <Maximize2 size={24} />
+                        </div>
+                    )}
+                </div>
+
+                {/* Admin Controls */}
+                {isAdmin && (
+                    <div className="absolute top-4 right-4 z-20 flex gap-2 translate-y-[-10px] opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
+                        <button
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                            className="p-3 bg-red-600/90 hover:bg-red-600 rounded-full text-white backdrop-blur-md shadow-lg transition-transform hover:scale-110 active:scale-90 disabled:opacity-50"
+                        >
+                            <Trash2 size={16} strokeWidth={3} />
+                        </button>
+                    </div>
+                )}
+
+                {/* Type Badge */}
+                <div className="absolute top-4 left-4 px-3 py-1 bg-black/50 backdrop-blur-md border border-white/10 rounded-full text-[8px] font-black uppercase tracking-widest text-white/50 group-hover:text-white transition-colors">
+                    {item.type}
+                </div>
+            </div>
+
+            {/* Info Section */}
+            <div className="p-6 space-y-3 bg-[#0a0a0a] border-t border-white/5 relative">
+                <div className="space-y-1">
+                    <h3 className="text-sm font-black tracking-tight uppercase group-hover:text-[#136dec] transition-colors line-clamp-1">{item.title}</h3>
+                    <div className="flex items-center gap-2 text-[#444] text-[9px] font-black uppercase tracking-widest">
+                        <span>{item.category}</span>
+                        <span className="w-1 h-1 bg-[#136dec] rounded-full opacity-50" />
+                        <ExternalLink size={10} />
+                    </div>
+                </div>
+
+                {item.tags && item.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                        {item.tags.map((tag, idx) => (
+                            <span key={idx} className="text-[7px] font-black uppercase tracking-tighter text-[#222] group-hover:text-[#136dec]/50 transition-colors">#{tag}</span>
+                        ))}
                     </div>
                 )}
             </div>
-
-            <div className="p-6 space-y-3">
-                <h3 className="font-bold text-lg tracking-tight group-hover:text-[#136dec] transition-colors line-clamp-1">{item.title}</h3>
-
-                <div className="flex flex-wrap gap-2">
-                    {item.tags?.map(tag => (
-                        <span key={tag} className="text-[10px] font-bold text-[#136dec] bg-[#136dec]/10 px-2 py-0.5 rounded-md border border-[#136dec]/20">
-                            #{tag}
-                        </span>
-                    ))}
-                </div>
-
-                <p className="text-[#a0a0a0] text-sm leading-relaxed line-clamp-2">
-                    {item.description}
-                </p>
-            </div>
         </div>
     );
-}
+};
+
+export default PortfolioItem;

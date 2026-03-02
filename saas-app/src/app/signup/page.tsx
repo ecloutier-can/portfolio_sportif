@@ -1,48 +1,39 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { auth, db } from '@/lib/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
-export default function SignUp() {
+export default function Signup() {
+    const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [username, setUsername] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
 
-    const handleSignUp = async (e: React.FormEvent) => {
+    const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
 
         try {
-            // 1. Sign up user
-            const { data: authData, error: authError } = await supabase.auth.signUp({
-                email,
-                password,
+            // 1. Create user in Firebase Auth
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            // 2. Create profile in Firestore
+            await setDoc(doc(db, 'profiles', user.uid), {
+                username: username.toLowerCase(),
+                full_name: username, // Default to username
+                email: email,
+                updated_at: new Date().toISOString()
             });
 
-            if (authError) throw authError;
-
-            if (authData.user) {
-                // 2. Create profile
-                const { error: profileError } = await supabase
-                    .from('profiles')
-                    .insert([
-                        {
-                            id: authData.user.id,
-                            username: username.toLowerCase(),
-                            full_name: username, // Default
-                        },
-                    ]);
-
-                if (profileError) throw profileError;
-
-                router.push('/dashboard');
-            }
+            router.push('/dashboard');
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -51,65 +42,70 @@ export default function SignUp() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-[#050505] p-4">
-            <div className="w-full max-w-md p-8 rounded-3xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl">
-                <h1 className="text-3xl font-black mb-6 text-center tracking-tight">CRÉER UN COMPTE</h1>
+        <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center p-6">
+            <div className="w-full max-w-md space-y-8 bg-white/[0.03] border border-white/10 p-10 rounded-[40px] shadow-2xl backdrop-blur-xl">
+                <div className="text-center space-y-2">
+                    <h1 className="text-3xl font-black uppercase tracking-tighter">Rejoindre ProAthlete</h1>
+                    <p className="text-[#a0a0a0] text-sm font-light">Créez votre vitrine sportive dès aujourd'hui.</p>
+                </div>
 
                 {error && (
-                    <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl mb-6 text-sm">
+                    <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-xs p-4 rounded-2xl text-center font-bold">
                         {error}
                     </div>
                 )}
 
-                <form onSubmit={handleSignUp} className="space-y-4">
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-[#a0a0a0] uppercase tracking-widest ml-1">Nom d'utilisateur</label>
-                        <input
-                            type="text"
-                            required
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            placeholder="votre-nom"
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-[#136dec] outline-none transition-all"
-                        />
-                    </div>
+                <form onSubmit={handleSignup} className="space-y-6">
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-[#444] ml-4">Nom d'utilisateur</label>
+                            <input
+                                type="text"
+                                required
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                className="w-full bg-white/[0.05] border border-white/10 rounded-2xl px-6 py-4 text-sm focus:border-[#136dec] focus:outline-none transition-all placeholder:text-[#333]"
+                                placeholder="ex: jdoe_athlete"
+                            />
+                        </div>
 
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-[#a0a0a0] uppercase tracking-widest ml-1">Email</label>
-                        <input
-                            type="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="email@example.com"
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-[#136dec] outline-none transition-all"
-                        />
-                    </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-[#444] ml-4">Email</label>
+                            <input
+                                type="email"
+                                required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full bg-white/[0.05] border border-white/10 rounded-2xl px-6 py-4 text-sm focus:border-[#136dec] focus:outline-none transition-all placeholder:text-[#333]"
+                                placeholder="votre@email.com"
+                            />
+                        </div>
 
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-[#a0a0a0] uppercase tracking-widest ml-1">Mot de passe</label>
-                        <input
-                            type="password"
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="••••••••"
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-[#136dec] outline-none transition-all"
-                        />
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-[#444] ml-4">Mot de passe</label>
+                            <input
+                                type="password"
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full bg-white/[0.05] border border-white/10 rounded-2xl px-6 py-4 text-sm focus:border-[#136dec] focus:outline-none transition-all placeholder:text-[#333]"
+                                placeholder="••••••••"
+                            />
+                        </div>
                     </div>
 
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-4 bg-[#136dec] text-white font-bold rounded-xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                        className="w-full bg-[#136dec] text-white font-black uppercase tracking-widest py-5 rounded-2xl shadow-[0_10px_30px_rgba(19,109,236,0.3)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
                     >
-                        {loading ? 'INSCRIPTION...' : 'S\'INSCRIRE'}
+                        {loading ? 'CRÉATION...' : 'CRÉER MON COMPTE'}
                     </button>
                 </form>
 
-                <div className="mt-8 text-center text-sm text-[#a0a0a0]">
-                    Déjà un compte ? <Link href="/login" className="text-[#136dec] font-bold">Se connecter</Link>
-                </div>
+                <p className="text-center text-xs text-[#444] font-bold">
+                    DÉJÀ UN COMPTE ? <Link href="/login" className="text-white hover:text-[#136dec] transition-colors">SE CONNECTER</Link>
+                </p>
             </div>
         </div>
     );

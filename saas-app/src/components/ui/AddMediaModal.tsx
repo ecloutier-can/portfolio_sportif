@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import React, { useState } from 'react';
+import { X, Link as LinkIcon, Camera, Video, Youtube, Instagram, Save } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 interface AddMediaModalProps {
     userId: string;
@@ -9,127 +11,143 @@ interface AddMediaModalProps {
     onSuccess: () => void;
 }
 
-export default function AddMediaModal({ userId, onClose, onSuccess }: AddMediaModalProps) {
+const AddMediaModal: React.FC<AddMediaModalProps> = ({ userId, onClose, onSuccess }) => {
     const [title, setTitle] = useState('');
-    const [type, setType] = useState('photo');
     const [url, setUrl] = useState('');
-    const [thumbnailUrl, setThumbnailUrl] = useState('');
-    const [category, setCategory] = useState('');
-    const [tags, setTags] = useState('');
-    const [description, setDescription] = useState('');
+    const [category, setCategory] = useState('HIGHLIGHT');
+    const [type, setType] = useState('Photo');
     const [loading, setLoading] = useState(false);
 
-    const extractYouTubeId = (url: string) => {
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-        const match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : url;
+    // Helper to extract Youtube ID or handle Cloudinary/Social Thumbnails
+    const generateThumbnail = (mediaUrl: string, mediaType: string) => {
+        if (mediaType === 'Youtube') {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+            const match = mediaUrl.match(regExp);
+            const id = (match && match[2].length === 11) ? match[2] : null;
+            return id ? `https://img.youtube.com/vi/${id}/maxresdefault.jpg` : '';
+        }
+
+        // Cloudinary AI Optimization (Crop 16:9 IA)
+        if (mediaUrl.includes('cloudinary.com')) {
+            return mediaUrl.replace('/upload/', '/upload/c_fill,g_auto,w_800,h_450/');
+        }
+
+        return mediaUrl; // Fallback
     };
 
-    const handleAdd = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
-        let finalThumbnail = thumbnailUrl;
-        let finalUrl = url;
-
-        // 1. Cloudinary IA Logan logic
-        if (type === 'photo' && url.includes('cloudinary.com')) {
-            if (!url.includes('/upload/')) {
-                finalThumbnail = url;
-            } else {
-                finalThumbnail = url.replace('/upload/', '/upload/c_fill,g_auto,w_800,h_450,f_auto,q_auto/');
-            }
-        } else if (type === 'youtube') {
-            const videoId = extractYouTubeId(url);
-            finalUrl = videoId;
-            if (!thumbnailUrl) {
-                finalThumbnail = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-            }
-        }
-
-        if (!finalThumbnail) {
-            finalThumbnail = 'https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=800&auto=format&fit=crop';
-        }
-
         try {
-            const { error } = await supabase
-                .from('media_items')
-                .insert([{
-                    profile_id: userId,
-                    title,
-                    type,
-                    url: finalUrl,
-                    thumbnail_url: finalThumbnail,
-                    category,
-                    tags: tags.split(',').map(t => t.trim()).filter(t => t),
-                    description,
-                }]);
+            const thumbUrl = generateThumbnail(url, type);
 
-            if (error) throw error;
+            await addDoc(collection(db, 'media_items'), {
+                profile_id: userId,
+                title,
+                url,
+                type,
+                category,
+                thumbnail_url: thumbUrl,
+                created_at: serverTimestamp(),
+                tags: [category.toLowerCase()]
+            });
+
             onSuccess();
-            onClose();
-        } catch (err: any) {
-            alert(err.message);
+        } catch (error) {
+            console.error("Error adding media:", error);
+            alert("Erreur lors de l'ajout.");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
-            <div className="w-full max-w-xl bg-[#111] border border-white/10 rounded-3xl p-8 space-y-6">
-                <h2 className="text-2xl font-black text-[#136dec] uppercase tracking-tight">Nouvel Extrait</h2>
-
-                <form onSubmit={handleAdd} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-[#a0a0a0] uppercase tracking-widest ml-1">Titre</label>
-                            <input type="text" required value={title} onChange={e => setTitle(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm" />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-[#a0a0a0] uppercase tracking-widest ml-1">Type</label>
-                            <select value={type} onChange={e => setType(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm">
-                                <option value="photo">Photo (Lien externe)</option>
-                                <option value="video">Vidéo (Lien direct)</option>
-                                <option value="youtube">YouTube / Social</option>
-                            </select>
-                        </div>
-                    </div>
-
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+            <div className="w-full max-w-lg bg-[#0a0a0a] border border-white/10 rounded-[40px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                <div className="p-8 border-b border-white/5 flex justify-between items-center">
                     <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-[#a0a0a0] uppercase tracking-widest ml-1">URL / ID YouTube</label>
-                        <input type="text" required value={url} onChange={e => setUrl(e.target.value)} placeholder="https://... ou ID YouTube" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm" />
-                    </div>
-
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-[#a0a0a0] uppercase tracking-widest ml-1">Miniature (Optionnel)</label>
-                        <input type="text" value={thumbnailUrl} onChange={e => setThumbnailUrl(e.target.value)} placeholder="Laissé vide pour auto-génération" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm" />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-[#a0a0a0] uppercase tracking-widest ml-1">Catégorie</label>
-                            <input type="text" required value={category} onChange={e => setCategory(e.target.value)} placeholder="Ex: Buts" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm" />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-[#a0a0a0] uppercase tracking-widest ml-1">Tags (virgules)</label>
-                            <input type="text" value={tags} onChange={e => setTags(e.target.value)} placeholder="But, Finale, Top" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm" />
+                        <h2 className="text-2xl font-black uppercase tracking-tighter">Ajouter un Média</h2>
+                        <div className="flex gap-4 text-[8px] font-black uppercase tracking-[3px] text-[#444]">
+                            <span className={type === 'Photo' ? 'text-[#136dec]' : ''}>Cloudinary</span>
+                            <span className={type === 'Youtube' ? 'text-[#136dec]' : ''}>YouTube</span>
+                            <span className={type === 'Video' ? 'text-[#136dec]' : ''}>Vimeo</span>
+                            <span>Instagram</span>
                         </div>
                     </div>
+                    <button onClick={onClose} className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-colors">
+                        <X size={20} />
+                    </button>
+                </div>
 
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-[#a0a0a0] uppercase tracking-widest ml-1">Description</label>
-                        <textarea rows={3} value={description} onChange={e => setDescription(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm" />
+                <form onSubmit={handleSubmit} className="p-8 space-y-8">
+                    <div className="space-y-6">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-[#444] ml-2">Titre du média</label>
+                            <input
+                                required
+                                value={title}
+                                onChange={e => setTitle(e.target.value)}
+                                placeholder="EX: BUT DÉCISIF CHAMPIONNAT"
+                                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-6 py-4 text-xs focus:border-[#136dec] focus:outline-none transition-all placeholder:text-[#222] font-bold"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-[#444] ml-2">Lien URL (Vidéo ou Image)</label>
+                            <div className="relative">
+                                <LinkIcon className="absolute left-6 top-1/2 -translate-y-1/2 text-[#222]" size={14} />
+                                <input
+                                    required
+                                    value={url}
+                                    onChange={e => setUrl(e.target.value)}
+                                    placeholder="https://..."
+                                    className="w-full bg-white/[0.03] border border-white/5 rounded-2xl pl-14 pr-6 py-4 text-xs focus:border-[#136dec] focus:outline-none transition-all placeholder:text-[#222] font-bold"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-[#444] ml-2">Type</label>
+                                <select
+                                    value={type}
+                                    onChange={e => setType(e.target.value)}
+                                    className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-6 py-4 text-xs focus:border-[#136dec] focus:outline-none appearance-none font-bold text-[#a0a0a0]"
+                                >
+                                    <option value="Photo">PHOTO</option>
+                                    <option value="Vidéo">VIDÉO</option>
+                                    <option value="Youtube">YOUTUBE</option>
+                                    <option value="Réseaux Sociaux">SOCIALS</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-[#444] ml-2">Catégorie</label>
+                                <select
+                                    value={category}
+                                    onChange={e => setCategory(e.target.value)}
+                                    className="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-6 py-4 text-xs focus:border-[#136dec] focus:outline-none appearance-none font-bold text-[#a0a0a0]"
+                                >
+                                    <option value="HIGHLIGHT">HIGHLIGHT</option>
+                                    <option value="MATCH">MATCH</option>
+                                    <option value="ENTRAÎNEMENT">TRAINING</option>
+                                    <option value="PRESSE">PRESSE</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="flex gap-4 pt-4">
-                        <button type="button" onClick={onClose} className="flex-1 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-xl transition-all hover:bg-white/10">ANNULER</button>
-                        <button type="submit" disabled={loading} className="flex-1 py-4 bg-[#2ed573] text-white font-bold rounded-xl transition-all hover:shadow-[0_0_20px_rgba(46,213,115,0.4)] disabled:opacity-50">
-                            {loading ? 'ENREGISTREMENT...' : 'SAUVEGARDER'}
-                        </button>
-                    </div>
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full bg-[#136dec] text-white flex items-center justify-center gap-3 py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-[0_10px_30px_rgba(19,109,236,0.3)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                    >
+                        {loading ? 'ENREGISTREMENT...' : <><Save size={18} /> ENREGISTRER LE MÉDIA</>}
+                    </button>
                 </form>
             </div>
         </div>
     );
-}
+};
+
+export default AddMediaModal;

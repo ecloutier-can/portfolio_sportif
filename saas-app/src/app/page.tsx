@@ -1,15 +1,36 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import ProfileCard from '@/components/ui/ProfileCard';
 
-export const dynamic = 'force-dynamic';
+export default function Home() {
+  const [profiles, setProfiles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export default async function Home() {
-  // Fetch all profiles
-  const { data: profiles, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .order('updated_at', { ascending: false });
+  useEffect(() => {
+    async function fetchProfiles() {
+      try {
+        const profilesRef = collection(db, 'profiles');
+        const q = query(profilesRef, orderBy('updated_at', 'desc'));
+        const querySnapshot = await getDocs(q);
+
+        const fetchedProfiles = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setProfiles(fetchedProfiles);
+      } catch (error) {
+        console.error("Error fetching profiles:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProfiles();
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen w-full bg-[#050505] text-white overflow-x-hidden">
@@ -60,18 +81,24 @@ export default async function Home() {
             <div className="flex-1 h-px bg-white/5" />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {profiles && profiles.length > 0 ? (
-              profiles.map((profile: any) => (
-                <ProfileCard key={profile.id} profile={profile} />
-              ))
-            ) : (
-              <div className="col-span-full py-20 text-center space-y-4 bg-white/[0.02] rounded-3xl border border-dashed border-white/10">
-                <p className="text-[#a0a0a0] font-medium italic">Aucun profile n'est encore disponible sur la plateforme.</p>
-                <Link href="/signup" className="text-[#136dec] font-bold underline">Soyez le premier à créer le vôtre !</Link>
-              </div>
-            )}
-          </div>
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <div className="w-8 h-8 border-2 border-[#136dec]/20 border-t-[#136dec] rounded-full animate-spin"></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {profiles && profiles.length > 0 ? (
+                profiles.map((profile: any) => (
+                  <ProfileCard key={profile.id} profile={profile} />
+                ))
+              ) : (
+                <div className="col-span-full py-20 text-center space-y-4 bg-white/[0.02] rounded-3xl border border-dashed border-white/10">
+                  <p className="text-[#a0a0a0] font-medium italic">Aucun profile n'est encore disponible sur la plateforme.</p>
+                  <Link href="/signup" className="text-[#136dec] font-bold underline">Soyez le premier à créer le vôtre !</Link>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* Closing CTA */}

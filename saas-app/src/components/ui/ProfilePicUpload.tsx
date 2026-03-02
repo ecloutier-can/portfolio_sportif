@@ -1,122 +1,139 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import React, { useState, useRef } from 'react';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
+import { storage, db } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { doc, updateDoc } from 'firebase/firestore';
+import { Camera, Check, X, Upload } from 'lucide-react';
 
 interface ProfilePicUploadProps {
     userId: string;
-    currentPic?: string;
+    currentUrl: string;
     onSuccess: () => void;
 }
 
-export default function ProfilePicUpload({ userId, currentPic, onSuccess }: ProfilePicUploadProps) {
-    const [showCropper, setShowCropper] = useState(false);
-    const [imageSrc, setImageSrc] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
+const ProfilePicUpload: React.FC<ProfilePicUploadProps> = ({ userId, currentUrl, onSuccess }) => {
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+    const [isCropping, setIsCropping] = useState(false);
     const imageRef = useRef<HTMLImageElement>(null);
-    const cropperRef = useRef<Cropper | null>(null);
+    const cropperRef = useRef<any>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = () => {
-                setImageSrc(reader.result as string);
-                setShowCropper(true);
-            };
-            reader.readAsDataURL(file);
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setSelectedFile(file);
+            setPreviewUrl(URL.createObjectURL(file));
+            setIsCropping(true);
+
+            // Initialize Cropper after a short delay to ensure image is in DOM
+            setTimeout(() => {
+                if (imageRef.current) {
+                    if (cropperRef.current) cropperRef.current.destroy();
+                    cropperRef.current = new Cropper(imageRef.current, {
+                        aspectRatio: 1,
+                        viewMode: 1,
+                        background: false,
+                        responsive: true,
+                        autoCropArea: 1,
+                    } as any);
+                }
+            }, 100);
         }
     };
 
-    const initCropper = () => {
-        if (imageRef.current) {
-            cropperRef.current = new Cropper(imageRef.current, {
-                aspectRatio: 1,
-                viewMode: 1,
-                guides: true,
-                background: false,
-                autoCropArea: 1,
-            } as any);
-        }
+    const handleCancel = () => {
+        setIsCropping(false);
+        setPreviewUrl(null);
+        setSelectedFile(null);
+        if (cropperRef.current) cropperRef.current.destroy();
     };
 
-    const handleSave = async () => {
+    const handleUpload = async () => {
         if (!cropperRef.current) return;
-        setLoading(true);
 
-        (cropperRef.current as any).getCroppedCanvas({ width: 400, height: 400 }).toBlob(async (blob: Blob | null) => {
-            if (blob) {
-                const filePath = `${userId}/profile_${Date.now()}.jpg`;
+        setUploading(true);
+        const canvas = cropperRef.current.getCroppedCanvas({
+            width: 400,
+            height: 400,
+        });
 
-                const { error: uploadError } = await supabase.storage
-                    .from('profile-pictures')
-                    .upload(filePath, blob, { upsert: true });
+        canvas.toBlob(async (blob: Blob | null) => {
+            if (!blob) return;
 
-                if (uploadError) {
-                    alert(uploadError.message);
-                    setLoading(false);
-                    return;
-                }
+            try {
+                // 1. Upload to Firebase Storage
+                const fileRef = ref(storage, `profiles/${userId}/avatar.jpg`);
+                await uploadBytes(fileRef, blob);
 
-                const { data: { publicUrl } } = supabase.storage
-                    .from('profile-pictures')
-                    .getPublicUrl(filePath);
+                // 2. Get Download URL
+                const downloadUrl = await getDownloadURL(fileRef);
 
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({ profile_picture_url: publicUrl })
-                    .eq('id', userId);
+                // 3. Update Firestore Profile
+                const profileRef = doc(db, 'profiles', userId);
+                await updateDoc(profileRef, {
+                    profile_picture_url: downloadUrl,
+                    updated_at: new Date().toISOString()
+                });
 
-                if (updateError) {
-                    alert(updateError.message);
-                } else {
-                    onSuccess();
-                    setShowCropper(false);
-                }
+                setIsCropping(false);
+                setPreviewUrl(null);
+                setSelectedFile(null);
+                onSuccess();
+            } catch (error) {
+                console.error("Error uploading profile picture:", error);
+                alert("Erreur lors de l'upload.");
+            } finally {
+                setUploading(false);
             }
-            setLoading(false);
         }, 'image/jpeg');
     };
 
     return (
-        <div className="relative group">
-            <div className="w-36 h-36 rounded-full overflow-hidden border-2 border-[#136dec] shadow-[0_0_20px_rgba(19,109,236,0.3)] bg-[#111]">
-                <img src={currentPic || '/default-avatar.png'} alt="Profile" className="w-full h-full object-cover" />
-            </div>
+        <div className="relative w-full h-full group">
+            {/* Current Avatar or Placeholder */}
+            <img
+                src={currentUrl || '/default-avatar.png'}
+                alt="Profile"
+                className="w-full h-full object-cover rounded-full"
+            />
 
-            <label className="absolute bottom-1 right-1 bg-[#136dec] p-2 rounded-full cursor-pointer border-2 border-[#050505] hover:scale-110 transition-transform">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                    <circle cx="12" cy="13" r="4"></circle>
-                </svg>
+            {/* Upload Trigger (Overlay) */}
+            <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full group-hover:backdrop-blur-sm">
+                <Camera className="text-white mb-1" size={24} />
+                <span className="text-[8px] font-black uppercase tracking-widest text-white">Changer</span>
                 <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
             </label>
 
-            {showCropper && (
-                <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 backdrop-blur-xl">
-                    <div className="w-full max-w-2xl bg-[#111] rounded-3xl overflow-hidden border border-white/10">
-                        <div className="p-4 border-b border-white/10 flex justify-between items-center">
-                            <span className="font-bold uppercase tracking-widest text-[#a0a0a0] text-xs">Recadrer le profil</span>
-                            <button onClick={() => setShowCropper(false)} className="text-white hover:text-red-500">×</button>
+            {/* Cropping Modal Overlay */}
+            {isCropping && (
+                <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-6 sm:p-12">
+                    <div className="w-full max-w-xl space-y-8 animate-in fade-in zoom-in duration-300">
+                        <div className="text-center space-y-2">
+                            <h2 className="text-2xl font-black tracking-tighter uppercase">Recadrer la photo</h2>
+                            <p className="text-[#a0a0a0] text-xs">Ajustez votre photo pour un affichage circulaire optimal.</p>
                         </div>
-                        <div className="max-h-[60vh] overflow-hidden bg-black flex items-center justify-center">
-                            <img ref={imageRef} src={imageSrc!} onLoad={initCropper} style={{ maxWidth: '100%' }} />
+
+                        <div className="relative aspect-square bg-[#0a0a0a] border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
+                            <img ref={imageRef} src={previewUrl!} alt="Preview" className="max-w-full block" />
                         </div>
-                        <div className="p-6 flex gap-4">
+
+                        <div className="flex gap-4">
                             <button
-                                onClick={() => setShowCropper(false)}
-                                className="flex-1 py-4 bg-white/5 text-white font-bold rounded-xl"
+                                onClick={handleCancel}
+                                className="flex-1 py-5 rounded-2xl font-black uppercase tracking-widest text-xs border border-white/10 hover:bg-white/5 transition-all flex items-center justify-center gap-2"
                             >
-                                ANNULER
+                                <X size={16} /> ANNULER
                             </button>
                             <button
-                                onClick={handleSave}
-                                disabled={loading}
-                                className="flex-1 py-4 bg-[#136dec] text-white font-bold rounded-xl disabled:opacity-50"
+                                onClick={handleUpload}
+                                disabled={uploading}
+                                className="flex-[2] bg-[#136dec] text-white flex items-center justify-center gap-3 py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-[0_10px_30px_rgba(19,109,236,0.3)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
                             >
-                                {loading ? 'ENREGISTREMENT...' : 'VALIDER'}
+                                {uploading ? 'UPLOAD...' : <><Upload size={18} /> CONFIRMER & ENREGISTRER</>}
                             </button>
                         </div>
                     </div>
@@ -124,4 +141,6 @@ export default function ProfilePicUpload({ userId, currentPic, onSuccess }: Prof
             )}
         </div>
     );
-}
+};
+
+export default ProfilePicUpload;
