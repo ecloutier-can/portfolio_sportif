@@ -1,5 +1,7 @@
 {
   "projects": {
     "default": "sports-portfolio-saas-2026"
-  }
+  },
+  "targets": {},
+  "etags": {}
 }

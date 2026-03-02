@@ -1,15 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --bg-color: #050505;
-  --accent-color: #136dec;
-  --card-bg: rgba(255, 255, 255, 0.05);
-  --sidebar-bg: rgba(255, 255, 255, 0.03);
+  --bg-color: #000000;
+  --bg-secondary: #0a0a0a;
+  --bg-card: #121212;
+  --accent-color: #1f68f9;
+  --accent-glow: rgba(31, 104, 249, 0.4);
   --text-primary: #ffffff;
-  --text-secondary: #a0a0a0;
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
-  
+  --text-secondary: #94a3b8;
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui;
+  --font-display: var(--font-lexend), ui-sans-serif, system-ui;
+
   /* Next.js defaults compatibility */
   --background: var(--bg-color);
   --foreground: var(--text-primary);
@@ -30,120 +34,120 @@ body {
   background-color: var(--bg-color);
   color: var(--text-primary);
   overflow-x: hidden;
-  display: flex;
-  min-height: 100vh;
+  font-family: var(--font-sans);
 }
 
-/* Sidebar */
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Typography Utilities */
+.text-glow {
+  text-shadow: 0 0 15px var(--accent-glow);
+}
+
+/* Button Styles */
+.btn-primary {
+  background-color: var(--accent-color);
+  color: white;
+  padding: 12px 28px;
+  border-radius: 99px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px var(--accent-glow);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px var(--accent-glow);
+  background-color: #3b82f6;
+}
+
+.btn-glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  color: white;
+  padding: 10px 24px;
+  border-radius: 99px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-glass:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Sidebar & Navigation */
 aside {
-  width: 300px;
-  background: var(--sidebar-bg);
-  backdrop-filter: blur(10px);
+  width: 280px;
+  background: var(--bg-secondary);
   border-right: 1px solid var(--glass-border);
   padding: 40px 20px;
   position: fixed;
   height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   z-index: 100;
 }
 
-.profile-pic-container {
-  position: relative;
-  width: 150px;
-  height: 150px;
-  margin-bottom: 20px;
+/* Main Layout */
+.main-wrapper {
+  margin-left: 280px;
+  min-height: 100vh;
 }
 
-.profile-pic {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid var(--accent-color);
-  box-shadow: 0 0 20px rgba(19, 109, 236, 0.3);
-  transition: all 0.3s;
-}
-
-.athlete-info {
-  text-align: center;
-  margin-bottom: 40px;
-}
-
-.athlete-info h1 {
-  font-size: 1.5rem;
-  font-weight: 800;
-  margin-bottom: 5px;
-}
-
-.athlete-stats {
-  width: 100%;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 15px;
-  border: 1px solid var(--glass-border);
-  margin-bottom: 30px;
-}
-
-.stat-item {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
-  font-size: 0.9rem;
-}
-
-.stat-label {
-  color: var(--text-secondary);
-}
-
-.stat-value {
-  font-weight: 600;
-  color: var(--accent-color);
-}
-
-.section-title {
-  color: var(--accent-color);
-  font-size: 0.8rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 10px;
-  margin-top: 25px;
-  text-align: left;
-  width: 100%;
-  padding-left: 10px;
-}
-
-/* Main Content */
-main {
-  margin-left: 300px;
-  flex: 1;
-  padding: 40px;
-}
-
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 40px;
-}
-
-/* Portfolio Grid */
-.portfolio-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 25px;
-}
-
-.portfolio-item {
-  background: var(--card-bg);
+/* Card Styles */
+.athlete-card {
+  background: var(--bg-card);
   border-radius: 20px;
-  overflow: hidden;
   border: 1px solid var(--glass-border);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
   position: relative;
+}
+
+.athlete-card:hover {
+  transform: translateY(-8px);
+  border-color: var(--accent-color);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.athlete-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  padding: 1px;
+  background: linear-gradient(to bottom right, var(--glass-border), transparent, var(--accent-glow));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.athlete-card:hover::after {
+  opacity: 1;
+}
+
+/* Hero Section */
+.hero-gradient {
+  background: radial-gradient(circle at 20% 30%, rgba(31, 104, 249, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(31, 104, 249, 0.1) 0%, transparent 50%);
+}
+
+.mesh-grid {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
 }
 
 .thumbnail-container {
@@ -213,12 +217,20 @@ header {
 
 /* Responsive */
 @media (max-width: 1024px) {
-  aside { width: 250px; }
-  main { margin-left: 250px; }
+  aside {
+    width: 250px;
+  }
+
+  main {
+    margin-left: 250px;
+  }
 }
 
 @media (max-width: 768px) {
-  body { flex-direction: column; }
+  body {
+    flex-direction: column;
+  }
+
   aside {
     position: relative;
     width: 100%;
@@ -226,6 +238,7 @@ header {
     border-right: none;
     border-bottom: 1px solid var(--glass-border);
   }
+
   main {
     margin-left: 0;
     padding: 20px;
@@ -254,12 +267,65 @@ header {
   text-transform: uppercase;
 }
 
-.tag-youtube { color: #FF0000; }
-.tag-vimeo { color: #1AB7EA; font-style: italic; }
-.tag-instagram { 
+.tag-youtube {
+  color: #FF0000;
+}
+
+.tag-vimeo {
+  color: #1AB7EA;
+  font-style: italic;
+}
+
+.tag-instagram {
   background: -webkit-linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-.tag-cloudinary { color: #3448C5; }
+
+.tag-cloudinary {
+  color: #3448C5;
+}
+
+/* Scrollbar Utilities */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* New Animations */
+@keyframes fadeInExplode {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+    filter: blur(10px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInExplode 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 1s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
